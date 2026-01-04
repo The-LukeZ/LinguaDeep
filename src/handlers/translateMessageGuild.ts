@@ -22,7 +22,16 @@ import {
   V2Flag,
 } from "../utils.js";
 import { inlineCode } from "@discordjs/formatters";
-import { api } from "../discord.js";
+import { REST } from "@discordjs/rest";
+import { API } from "@discordjs/core/http-only";
+
+function makeApi() {
+  const rest = new REST({
+    version: "10",
+  }).setToken(process.env.DISCORD_TOKEN);
+
+  return new API(rest);
+}
 
 // A special command that only appears in guilds where the app is installed because otherwise we can't fetch a message to translate it.
 
@@ -255,6 +264,7 @@ export const commandTranslateMessageGuild = factory.command(command, (c) =>
       await c.followup("done").then(() => console.log("Language select message sent."));
 
       // Testing
+      const api = makeApi();
       for (const comp of res.components) {
         await api.channels
           .createMessage(channelId, {
