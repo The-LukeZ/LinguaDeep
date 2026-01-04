@@ -10,7 +10,8 @@
     "cf-typegen": "wrangler types",
     "build": "tsc",
     "format": "prettier --write .",
-    "register": "tsx --env-file=.env src/register.ts"
+    "register": "tsx --env-file=.env src/register.ts",
+		"migrate": "wrangler d1 migrations apply prod_linguadeep --remote"
   },
   "devDependencies": {
     "@types/node": "^25.0.3",
