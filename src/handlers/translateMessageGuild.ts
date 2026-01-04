@@ -6,7 +6,7 @@ import {
   ComponentType,
   InteractionContextType,
 } from "discord-api-types/v10";
-import { Button, Command, Content, Layout, Select } from "discord-hono";
+import { Button, Command, Content, Layout, Select, Components } from "discord-hono";
 import { factory } from "../init.js";
 import {
   ackRequest,
@@ -110,7 +110,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
   } else {
     containerComps.push(
       new Content("### Select target language:"),
-      new Layout("Action Row").components(
+      new Components().row(
         ...targetLanguageChunks.map((chunk, index) =>
           componentTargetLanguageSelect.component
             .custom_id(String(index))
@@ -137,7 +137,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
   } else {
     containerComps.push(
       new Content("### (Optional) Select source language:"),
-      new Layout("Action Row").components(
+      new Components().row(
         ...sourceLanguageChunks.map((chunk, index) =>
           componentSourceLanguageSelect.component
             .custom_id(String(index))
@@ -251,7 +251,11 @@ export const commandTranslateMessageGuild = factory.command(command, (c) =>
     try {
       const res = createLanguageSelectMessage(messageId);
       console.log("Created language select message:", res);
-      await c.followup("Test").then(() => console.log("Language select message sent."));
+      await c
+        .followup({
+          components: res.components,
+        })
+        .then(() => console.log("Language select message sent."));
     } catch (err) {
       console.error("Error creating language select message:", err);
       await c.followup({
