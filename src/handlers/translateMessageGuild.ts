@@ -30,14 +30,14 @@ const command = new Command("Translate Message")
   .contexts(InteractionContextType.Guild);
 
 // Chunks of 25 languages for select menu options
-const targetLanguageChunks = TargetLanguages.reduce<TargetLanguageCode[][]>((chunks, lang) => {
+const targetLanguageChunks = TargetLanguages.sort().reduce<TargetLanguageCode[][]>((chunks, lang) => {
   if (chunks.length === 0 || chunks[chunks.length - 1].length === 25) {
     chunks.push([]);
   }
   chunks[chunks.length - 1].push(lang);
   return chunks;
 }, []);
-const sourceLanguageChunks = SourceLanguages.reduce<SourceLanguageCode[][]>((chunks, lang) => {
+const sourceLanguageChunks = SourceLanguages.sort().reduce<SourceLanguageCode[][]>((chunks, lang) => {
   if (chunks.length === 0 || chunks[chunks.length - 1].length === 25) {
     chunks.push([]);
   }
