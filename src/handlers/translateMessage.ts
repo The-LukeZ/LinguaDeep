@@ -177,7 +177,7 @@ export const componentTranslateMessageConfirm = factory.component(new Button("tr
     return c.res(errorResponse("Please select a target language before confirming."));
   }
 
-  return c.flags("COMPONENTS_V2").resDefer(async (c) => {
+  return c.flags("COMPONENTS_V2", "EPHEMERAL").resDefer(async (c) => {
     // Retrieve the message text from the DataCache durable object (cached when the command was run)
     const key = `${channelId}:${messageId}`;
     const id: DurableObjectId = c.env.DATA_CACHE.idFromName(key);
