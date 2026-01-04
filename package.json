@@ -8,6 +8,7 @@
     "dev": "wrangler dev",
     "start": "wrangler dev",
     "cf-typegen": "wrangler types",
+    "build": "tsc",
     "format": "prettier --write .",
     "register": "tsc && node --env-file=.env dist/register.js"
   },
