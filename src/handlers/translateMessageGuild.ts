@@ -56,25 +56,31 @@ const sourceLanguageChunks = SourceLanguages.reduce<SourceLanguageCode[][]>((chu
   return chunks;
 }, []);
 
-export const componentTargetLanguageSelect = factory.component(new Select("translate_message_guild_target", "String"), async (c) => {
-  if (c.interaction.data.component_type !== ComponentType.StringSelect) return ackRequest(); // Type guard
+export const componentTargetLanguageSelect = factory.component(
+  new Select("translate_message_guild_target", "String").placeholder("Select a target language"),
+  async (c) => {
+    if (c.interaction.data.component_type !== ComponentType.StringSelect) return ackRequest(); // Type guard
 
-  const values = c.interaction.data.values;
-  const val = values.length ? values[0] : undefined;
-  const comps = c.interaction.message?.components ?? [];
-  const updated = createLanguageSelectMessage(extractMessageIdFromComponents(comps), "translate_message_guild_target", val);
-  return c.update().res(updated);
-});
+    const values = c.interaction.data.values;
+    const val = values.length ? values[0] : undefined;
+    const comps = c.interaction.message?.components ?? [];
+    const updated = createLanguageSelectMessage(extractMessageIdFromComponents(comps), "translate_message_guild_target", val);
+    return c.update().res(updated);
+  },
+);
 
-export const componentSourceLanguageSelect = factory.component(new Select("translate_message_guild_source", "String"), async (c) => {
-  if (c.interaction.data.component_type !== ComponentType.StringSelect) return ackRequest(); // Type guard
+export const componentSourceLanguageSelect = factory.component(
+  new Select("translate_message_guild_source", "String").placeholder("Select a source language"),
+  async (c) => {
+    if (c.interaction.data.component_type !== ComponentType.StringSelect) return ackRequest(); // Type guard
 
-  const values = c.interaction.data.values;
-  const val = values.length ? values[0] : undefined;
-  const comps = c.interaction.message?.components ?? [];
-  const updated = createLanguageSelectMessage(extractMessageIdFromComponents(comps), val, "translate_message_guild_source");
-  return c.update().res(updated);
-});
+    const values = c.interaction.data.values;
+    const val = values.length ? values[0] : undefined;
+    const comps = c.interaction.message?.components ?? [];
+    const updated = createLanguageSelectMessage(extractMessageIdFromComponents(comps), val, "translate_message_guild_source");
+    return c.update().res(updated);
+  },
+);
 
 export const componentClearTargetLanguage = factory.component(
   new Button("translate_message_guild_target_clear", ["❌", "Clear Target Language"], "Secondary"),
@@ -137,7 +143,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
       })),
     );
   }
-  containerComps.push(new Layout("Separator").spacing(2));
+  containerComps.push(new Layout("Separator").divider(true));
 
   if (selectedSource) {
     containerComps.push(
@@ -166,7 +172,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
     );
   }
 
-  containerComps.push(new Layout("Separator").spacing(2));
+  containerComps.push(new Layout("Separator").spacing(2).divider(true));
   containerComps.push({
     type: 1,
     components: [
@@ -265,18 +271,7 @@ export const commandTranslateMessageGuild = factory.command(command, (c) =>
     try {
       const res = createLanguageSelectMessage(messageId);
       console.log("Created language select message:", res);
-      await c.followup("done").then(() => console.log("Language select message sent."));
-
-      // Testing
-      const api = makeApi();
-      for (const comp of res.components.filter((c) => c.type === ComponentType.Container)![0].components) {
-        await api.channels
-          .createMessage(channelId, {
-            flags: V2Flag,
-            components: [comp],
-          })
-          .then(() => console.log("Sent component:", comp));
-      }
+      await c.followup(res).then(() => console.log("Language select message sent."));
     } catch (err) {
       console.error("Error creating language select message:", err);
       await c.followup({
