@@ -177,7 +177,7 @@ export const componentTranslateMessageGuild = factory.component(new Button("tran
     return c.res(errorResponse("Please select a target language before confirming."));
   }
 
-  return c.update().resDefer(async (c) => {
+  return c.resDefer(async (c) => {
     // Retrieve the message text from the DataCache durable object (cached when the command was run)
     await c.followup("Translating...");
     const key = `${channelId}:${messageId}`;
