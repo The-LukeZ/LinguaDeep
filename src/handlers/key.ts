@@ -48,8 +48,8 @@ export const commandKey = factory.command(command, async (c) => {
   }
   const deepl = makeDeeplClient(cfg);
   const usage = await deepl.getUsage();
+  const percentUsed = usage.character && usage.character.limit ? ((usage.character.count / usage.character.limit) * 100).toFixed(2) : "0";
   return c.res({
-    // content: `### 🔑 Your current DeepL API key:\n${spoiler(codeBlock(cfg.deeplApiKey))}\n- **DeepL Plan:** ${DeeplVersion[cfg.deeplVersion]}\n- **Characters Used:** \`${usage.character?.count || "null"}\` / \`${usage.character?.limit || "null"}\``,
     embeds: [
       {
         title: "🔑 Your DeepL API Key Information",
@@ -65,7 +65,7 @@ export const commandKey = factory.command(command, async (c) => {
           },
           {
             name: "Characters Used",
-            value: `${inlineCode(String(usage.character?.count || null))} / ${inlineCode(String(usage.character?.limit || null))}`,
+            value: `${inlineCode(String(usage.character?.count || null))} / ${inlineCode(String(usage.character?.limit || null))} (${percentUsed}%)`,
             inline: true,
           },
           {
