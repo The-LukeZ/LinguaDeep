@@ -53,62 +53,64 @@ export const commandTranslateMessageGuild = factory.command(command, async (c) =
   const channelId = c.interaction.channel.id;
   const messageId = message.id;
 
-  const id: DurableObjectId = c.env.DATA_CACHE.idFromName(`${channelId}:${messageId}`);
-  await c.env.DATA_CACHE.get(id).setData(`${channelId}:${messageId}`, text);
+  return c.flags("EPHEMERAL").resDefer(async (c) => {
+    const id: DurableObjectId = c.env.DATA_CACHE.idFromName(`${channelId}:${messageId}`);
+    await c.env.DATA_CACHE.get(id).setData(`${channelId}:${messageId}`, text);
 
-  return c.res({
-    flags: V2EphemeralFlag,
-    components: [
-      new TextDisplayBuilder().setContent(inlineCode(message.id)).toJSON(),
-      new ContainerBuilder()
-        .setAccentColor(0x5865f2)
-        .addTextDisplayComponents((t) => t.setContent("### Select target language:"))
-        .addActionRowComponents<StringSelectMenuBuilder>((ar) => {
-          const menus = targetLanguageChunks.map((chunk, index) =>
-            new StringSelectMenuBuilder()
-              .setCustomId(`translate_message_guild_target_${index}`)
-              .setPlaceholder("Select target language")
-              .addOptions(
-                ...chunk.map((lang) => ({
-                  label: AllLanguages[lang],
-                  value: lang,
-                })),
-              ),
-          );
-          menus.forEach((menu) => ar.addComponents(menu));
-          return ar;
-        })
-        .addSeparatorComponents((s) => s)
-        .addTextDisplayComponents((t) => t.setContent("### (Optional) Select source language:"))
-        .addActionRowComponents<StringSelectMenuBuilder>((ar) => {
-          const menus = sourceLanguageChunks.map((chunk, index) =>
-            new StringSelectMenuBuilder()
-              .setCustomId(`translate_message_guild_source_${index}`)
-              .setPlaceholder("Select source language (or leave empty for auto-detect)")
-              .addOptions(
-                ...chunk.map((lang) => ({
-                  label: AllLanguages[lang],
-                  value: lang,
-                })),
-              ),
-          );
-          menus.forEach((menu) => ar.addComponents(menu));
-          return ar;
-        })
-        .addSeparatorComponents((s) => s.setSpacing(2))
-        .addActionRowComponents((ar) =>
-          ar.addComponents(
-            new ButtonBuilder()
-              .setCustomId(`translate_message_guild_confirm`)
-              .setLabel("Translate Message")
-              .setEmoji({
-                name: "✅",
-              })
-              .setStyle(1),
-          ),
-        )
-        .toJSON(),
-    ],
+    return c.followup({
+      flags: V2EphemeralFlag,
+      components: [
+        new TextDisplayBuilder().setContent(inlineCode(message.id)).toJSON(),
+        new ContainerBuilder()
+          .setAccentColor(0x5865f2)
+          .addTextDisplayComponents((t) => t.setContent("### Select target language:"))
+          .addActionRowComponents<StringSelectMenuBuilder>((ar) => {
+            const menus = targetLanguageChunks.map((chunk, index) =>
+              new StringSelectMenuBuilder()
+                .setCustomId(`translate_message_guild_target_${index}`)
+                .setPlaceholder("Select target language")
+                .addOptions(
+                  ...chunk.map((lang) => ({
+                    label: AllLanguages[lang],
+                    value: lang,
+                  })),
+                ),
+            );
+            menus.forEach((menu) => ar.addComponents(menu));
+            return ar;
+          })
+          .addSeparatorComponents((s) => s)
+          .addTextDisplayComponents((t) => t.setContent("### (Optional) Select source language:"))
+          .addActionRowComponents<StringSelectMenuBuilder>((ar) => {
+            const menus = sourceLanguageChunks.map((chunk, index) =>
+              new StringSelectMenuBuilder()
+                .setCustomId(`translate_message_guild_source_${index}`)
+                .setPlaceholder("Select source language (or leave empty for auto-detect)")
+                .addOptions(
+                  ...chunk.map((lang) => ({
+                    label: AllLanguages[lang],
+                    value: lang,
+                  })),
+                ),
+            );
+            menus.forEach((menu) => ar.addComponents(menu));
+            return ar;
+          })
+          .addSeparatorComponents((s) => s.setSpacing(2))
+          .addActionRowComponents((ar) =>
+            ar.addComponents(
+              new ButtonBuilder()
+                .setCustomId(`translate_message_guild_confirm`)
+                .setLabel("Translate Message")
+                .setEmoji({
+                  name: "✅",
+                })
+                .setStyle(1),
+            ),
+          )
+          .toJSON(),
+      ],
+    });
   });
 });
 
