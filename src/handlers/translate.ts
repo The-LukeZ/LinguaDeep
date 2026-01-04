@@ -1,11 +1,10 @@
+import { SourceLanguageCode, TargetLanguageCode } from "deepl-node";
 import { Command, Option } from "discord-hono";
 import { factory } from "../init.js";
-import { SourceLanguageCode, TargetLanguageCode } from "deepl-node";
 import {
   AllLanguages,
   Autocomplete,
   DBHelper,
-  EphemeralFlag,
   getUserIdFromInteraction,
   makeDeeplClient,
   SourceLanguages,
@@ -48,13 +47,29 @@ export const autocomplete = factory.autocomplete<Var>(
   async (c) => {
     return c.flags("EPHEMERAL").resDefer(async (c) => {
       c.set("db", new DBHelper(c.env.DB));
-      const text = c.var.text;
-      const sourceLang = ((c.var.source_lang || c.interaction.user?.locale?.slice(0, 2)) as SourceLanguageCode) || undefined;
-      const targetLang = c.var.target_lang;
+      const text = (c.var.text || "").trim();
+      if (!text) return c.followup("### ❌ Text to translate is required.");
 
-      if (!targetLang) {
+      // Normalize and validate source language. If invalid or not provided, leave undefined -> DeepL will auto-detect.
+      let sourceCandidate = (c.var.source_lang || c.interaction.user?.locale?.slice(0, 2)) as string | undefined;
+      sourceCandidate = sourceCandidate?.trim();
+      const sourceParam: SourceLanguageCode | undefined =
+        sourceCandidate && SourceLanguages.includes(sourceCandidate as SourceLanguageCode)
+          ? (sourceCandidate as SourceLanguageCode)
+          : undefined;
+
+      // Validate target language — must be a supported, non-empty code.
+      const targetCandidate = (c.var.target_lang || "").trim();
+      if (!targetCandidate) {
         return c.followup("### ❌ Target language is required. Please specify it using the `target_lang` option.");
       }
+      if (!TargetLanguages.includes(targetCandidate as TargetLanguageCode)) {
+        return c.followup(`### ❌ Invalid target language: ${targetCandidate}`);
+      }
+      const targetParam = targetCandidate as TargetLanguageCode;
+
+      console.log("Using source language:", sourceParam ?? "auto-detect");
+      console.log("Using target language:", targetParam);
 
       const userId = getUserIdFromInteraction(c.interaction);
       const userCfg = await c.get("db").getSetting(userId);
@@ -62,14 +77,14 @@ export const autocomplete = factory.autocomplete<Var>(
 
       const deepl = makeDeeplClient(userCfg);
 
-      const result = await deepl.translateText(text, sourceLang, targetLang);
+      const result = await deepl.translateText(text, sourceParam || null, targetParam);
       return c.followup({
         embeds: [
           {
             title: "🌐 Translation Result",
             description: result.text,
             author: {
-              name: `From ${AllLanguages[result.detectedSourceLang]} to ${AllLanguages[targetLang]}`,
+              name: `From ${AllLanguages[result.detectedSourceLang]} to ${AllLanguages[targetParam]}`,
             },
             footer: {
               text: `Billed: ${result.billedCharacters} characters`,
