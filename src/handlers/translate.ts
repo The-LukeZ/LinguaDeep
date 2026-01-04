@@ -1,4 +1,4 @@
-import { Command, Option } from "discord-hono";
+import { Autocomplete, Command, Option } from "discord-hono";
 import { factory } from "../init.js";
 import { SourceLanguageCode, TargetLanguageCode } from "deepl-node";
 import { AllLanguages, DBHelper, getUserIdFromInteraction, makeDeeplClient, SourceLanguages, TargetLanguages } from "../utils.js";
@@ -23,9 +23,13 @@ export const autocomplete = factory.autocomplete<Var>(
     if (!c.focused) return c.resAutocomplete({ choices: [{ name: "Nothing found...", value: "nothing" }] });
     if (c.focused.name === "text") return new Response(null, { status: 204 }); // Gotta acknowledge the request anyways
     if (c.focused.name === "target_lang") {
-      return c.resAutocomplete({ choices: TargetLanguages.map((code) => ({ name: AllLanguages[code], value: code })) });
+      return c.resAutocomplete(
+        new Autocomplete(c.focused.value).choices(...TargetLanguages.map((code) => ({ name: AllLanguages[code], value: code }))),
+      );
     }
-    return c.resAutocomplete({ choices: SourceLanguages.map((code) => ({ name: AllLanguages[code], value: code })) });
+    return c.resAutocomplete(
+      new Autocomplete(c.focused.value).choices(...SourceLanguages.map((code) => ({ name: AllLanguages[code], value: code }))),
+    );
   },
   async (c) => {
     return c.resDefer(async (c) => {
