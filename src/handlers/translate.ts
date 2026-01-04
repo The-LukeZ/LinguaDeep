@@ -5,6 +5,7 @@ import {
   AllLanguages,
   Autocomplete,
   DBHelper,
+  EphemeralFlag,
   getUserIdFromInteraction,
   makeDeeplClient,
   SourceLanguages,
@@ -45,7 +46,7 @@ export const autocomplete = factory.autocomplete<Var>(
     );
   },
   async (c) => {
-    return c.resDefer(async (c) => {
+    return c.flags("EPHEMERAL").resDefer(async (c) => {
       c.set("db", new DBHelper(c.env.DB));
       const text = c.var.text;
       const sourceLang = (c.var.source_lang as SourceLanguageCode) || c.interaction.user?.locale || undefined;
