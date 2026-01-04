@@ -9,7 +9,7 @@ type Var = {
   source_lang?: SourceLanguageCode;
 };
 
-const command = new Command("translate", "Translate text using DeepL and your own key").options(
+const command = new Command("translate", "Translate text using DeepL").options(
   new Option("text", "Text to translate", "String").required(true),
   new Option("target_lang", "Target language (e.g., en, de, fr) | Defaults to your client's language", "String")
     .required(false)

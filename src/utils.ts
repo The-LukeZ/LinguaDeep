@@ -104,3 +104,5 @@ export const TargetLanguages: TargetLanguageCode[] = [
 export const EphemeralFlag = MessageFlags.Ephemeral;
 export const V2Flag = MessageFlags.IsComponentsV2;
 export const V2EphemeralFlag = EphemeralFlag | V2Flag;
+
+export const ackRequest = () => new Response(null, { status: 204 });
