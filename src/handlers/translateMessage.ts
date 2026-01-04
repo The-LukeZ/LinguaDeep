@@ -4,6 +4,7 @@ import {
   ackRequest,
   buildTranstatedMessage,
   DBHelper,
+  errorResponse,
   getPreferredTargetLanguage,
   getUserIdFromInteraction,
   makeDeeplClient,
@@ -21,13 +22,13 @@ export const commandTranslateMessage = factory.command(command, async (c) => {
 
   return c.flags("EPHEMERAL").resDefer(async (c) => {
     const text = (message?.content || "").trim();
-    if (!text) return c.followup("### ❌ The selected message has no content to translate.");
+    if (!text) return c.followup(errorResponse("The selected message has no content to translate."));
 
     c.set("db", new DBHelper(c.env.DB));
 
     const userId = getUserIdFromInteraction(c.interaction);
     const userCfg = await c.get("db").getSetting(userId);
-    if (!userCfg?.deeplApiKey) return c.followup("### ❌ DeepL API key not set. Please set it using `/key set` command.");
+    if (!userCfg?.deeplApiKey) return c.followup(errorResponse("DeepL API key not set. Please set it using `/key set` command."));
 
     const targetLang = await getPreferredTargetLanguage(userCfg, c.interaction.locale);
     console.log("Translating message text to:", userCfg.preferredLanguage, targetLang);

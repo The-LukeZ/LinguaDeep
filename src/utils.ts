@@ -288,3 +288,16 @@ export async function getPreferredTargetLanguage(
   }
   return "en-US";
 }
+
+/**
+ * Generates a standardized error response object for Discord interactions.
+ * @param error The error message to be included in the response
+ * @param withX Whether to include a "❌" symbol before the error message (default: true)
+ * @returns An object representing the error response, suitable for sending to Discord
+ */
+export function errorResponse(error: string, withX = true) {
+  return {
+    flags: V2EphemeralFlag,
+    content: `### ${withX ? "❌ " : ""}${error}`,
+  } as const;
+}

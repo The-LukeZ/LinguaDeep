@@ -7,6 +7,7 @@ import {
   Autocomplete,
   buildTranstatedMessage,
   DBHelper,
+  errorResponse,
   getPreferredTargetLanguage,
   getUserIdFromInteraction,
   makeDeeplClient,
@@ -53,7 +54,7 @@ export const commandTranslate = factory.autocomplete<Var>(
       const userId = getUserIdFromInteraction(c.interaction);
 
       const text = (c.var.text || "").trim();
-      if (!text) return c.followup("### ❌ Text to translate is required.");
+      if (!text) return c.followup(errorResponse("Text to translate is required."));
 
       // Normalize and validate source language. If invalid or not provided, leave undefined -> DeepL will auto-detect.
       let sourceCandidate = (c.var.source_lang || c.interaction.user?.locale?.slice(0, 2)) as string | undefined;
@@ -66,14 +67,14 @@ export const commandTranslate = factory.autocomplete<Var>(
       const userCfg = await c.get("db").getSetting(userId);
       const targetCandidate = (c.var.target_lang || "").trim() || (await getPreferredTargetLanguage(userCfg, c.interaction.locale));
       if (!TargetLanguages.includes(targetCandidate as TargetLanguageCode)) {
-        return c.followup(`### ❌ Invalid target language: ${targetCandidate}`);
+        return c.followup(errorResponse(`Invalid target language: ${targetCandidate}`));
       }
       const targetParam = targetCandidate as TargetLanguageCode;
 
       console.log("Using source language:", sourceParam ?? "auto-detect");
       console.log("Using target language:", targetParam);
 
-      if (!userCfg?.deeplApiKey) return c.followup("### ❌ DeepL API key not set. Please set it using `/key set` command.");
+      if (!userCfg?.deeplApiKey) return c.followup(errorResponse("DeepL API key not set. Please set it using `/key set` command."));
 
       const deepl = makeDeeplClient(userCfg);
 

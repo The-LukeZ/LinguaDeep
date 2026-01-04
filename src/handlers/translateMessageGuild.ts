@@ -14,6 +14,7 @@ import {
   buildTranstatedMessage,
   DBHelper,
   EphemeralFlag,
+  errorResponse,
   getUserIdFromInteraction,
   makeDeeplClient,
   SourceLanguages,
@@ -182,32 +183,34 @@ export const componentTranslateMessageGuild = factory.component(new Button("tran
   const [messageId, target, source] = c.var.custom_id!.split("/");
 
   if (!target) {
-    return c.res({ flags: V2EphemeralFlag, content: "### ❌ Please select a target language before confirming." });
+    return c.res(errorResponse("Please select a target language before confirming."));
   }
 
-  return c.flags("EPHEMERAL").resDefer(async (c) => {
+  return c.update().resDefer(async (c) => {
     // Retrieve the message text from the DataCache durable object (cached when the command was run)
+    await c.followup("Translating...");
     const key = `${channelId}:${messageId}`;
     const id: DurableObjectId = c.env.DATA_CACHE.idFromName(key);
     const stub = c.env.DATA_CACHE.get(id);
     const cachedText = await stub.getData(key);
     if (!cachedText) {
-      return c.res({
-        flags: V2EphemeralFlag,
-        content:
-          "### ⚠️ The cached message has expired.\nPlease run the **Translate Message** command on the message again to recreate the cache and try again.",
-      });
+      return c.followup(
+        errorResponse(
+          "⚠️ The cached message has expired.\nPlease run the **Translate Message** command on the message again to recreate the cache and try again.",
+          false,
+        ),
+      );
     }
 
     const text = cachedText.trim();
-    if (!text) return c.res({ flags: V2EphemeralFlag, content: "### ❌ The selected message has no content to translate." });
+    if (!text) return c.followup(errorResponse("The selected message has no content to translate."));
 
     // Translation setup
     c.set("db", new DBHelper(c.env.DB));
     const userId = getUserIdFromInteraction(c.interaction);
     const userCfg = await c.get("db").getSetting(userId);
     if (!userCfg?.deeplApiKey) {
-      return c.res({ flags: V2EphemeralFlag, content: "### ❌ DeepL API key not set. Please set it using `/key set` command." });
+      return c.followup(errorResponse("DeepL API key not set. Please set it using `/key set` command."));
     }
 
     const deepl = makeDeeplClient(userCfg);
@@ -229,10 +232,7 @@ export const commandTranslateMessageGuild = factory.command(command, (c) =>
     const message = c.interaction.data.resolved.messages[c.interaction.data.target_id];
     const text = (message?.content || "").trim();
     if (!text) {
-      return c.followup({
-        flags: V2Flag,
-        components: [new Content("### ❌ The selected message has no content to translate.")],
-      });
+      return c.followup(errorResponse("The selected message has no content to translate."));
     }
 
     const channelId = c.interaction.channel.id;
@@ -243,14 +243,10 @@ export const commandTranslateMessageGuild = factory.command(command, (c) =>
 
     try {
       const res = createLanguageSelectMessage(messageId);
-      console.log("Created language select message:", res);
       await c.followup(res).then(() => console.log("Language select message sent."));
     } catch (err) {
       console.error("Error creating language select message:", err);
-      await c.followup({
-        flags: V2Flag,
-        components: [new Content("### ❌ An error occurred while preparing the language selection. Please try again later.")],
-      });
+      await c.followup(errorResponse("An error occurred while preparing the language selection. Please try again later."));
     }
   }),
 );

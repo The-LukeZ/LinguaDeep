@@ -7,6 +7,7 @@ import {
   Autocomplete,
   buildTranstatedMessage,
   DBHelper,
+  errorResponse,
   getUserIdFromInteraction,
   makeDeeplClient,
   SourceLanguages,
@@ -59,10 +60,10 @@ export const commandPreferredLanguage = factory.autocomplete<Var>(
       // Validate target language — must be a supported, non-empty code.
       const targetCandidate = (c.var.language || "").trim();
       if (!targetCandidate) {
-        return c.followup("### ❌ Language is required. Please specify it using the `language` option.");
+        return c.followup(errorResponse("Language is required. Please specify it using the `language` option."));
       }
       if (!TargetLanguages.includes(targetCandidate as TargetLanguageCode)) {
-        return c.followup(`### ❌ Invalid target language: ${targetCandidate}`);
+        return c.followup(errorResponse(`Invalid target language: ${targetCandidate}`));
       }
       const targetParam = targetCandidate as TargetLanguageCode;
 
