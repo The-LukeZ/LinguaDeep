@@ -23,8 +23,8 @@
   - Important: This bot is BYOK — translations consume characters on **your** DeepL plan.
 
 - **Message actions (context menu)** — Translate specific messages
-  - `Translate` (Message) — Translate the chosen message using your preferred language (ephemeral).
-  - `Translate Message` (Guild only) — Opens an interactive language selector to pick target (and optionally source) languages before confirming the translation.
+  - `Quick Translate` (Message) — Translate the chosen message using your set preferred language or client language (ephemeral).
+  - `Translate (Choose Language)` — Opens an interactive language selector to pick target (and optionally source) languages before confirming the translation.
 
 - **`/help`** — Short usage summary and next steps (also explains BYOK)
 
@@ -40,8 +40,8 @@
    - `/preferred-language set language:"en-US"`
 4. Translate:
    - Quick text: `/translate text:"Hola" target_lang:"en-US"`
-   - Message: right-click a message → Apps → `Translate` (ephemeral to you).
-   - In guilds, use `Translate Message` for a language selector with confirmation.
+   - Message: right-click a message → Apps → `Quick Translate` (ephemeral to you).
+   - In guilds, use `Translate (Choose Language)` for a language selector with confirmation.
 
 ---
 
@@ -59,7 +59,7 @@
 
 ## What to expect (behavior & UI) ⚙️
 
-- Responses are **ephemeral** by default (visible only to the requester).
+- Responses are **all ephemeral** (visible only to the executor).
 - Translations show an embed with the detected source language, the translated text, and billed character count.
 - `/key view` shows usage and whether you've hit any DeepL plan limits.
 
@@ -80,7 +80,7 @@
 - Q: "Translation failed / nothing happened."
   - A: Check you set your key with `/key set` and run `/key view` to see usage. If your DeepL plan limit is reached, purchases/upgrade are needed.
 - Q: "The selected message says the cache expired."
-  - A: The message translation cache is time-limited; run the `Translate Message` command again on the message.
+  - A: The message translation cache is time-limited; run the `Translate (Choose Language)` command again on the message.
 - Q: "How do I set my default target?"
   - A: Use `/preferred-language set language:"<code>"`.
 - Q: "Are my keys safe?"
@@ -96,7 +96,7 @@
   - `/translate text:"Bonjour" target_lang:"en-US"`
 - Set preferred language to German:
   - `/preferred-language set language:"de"`
-- Translate a message (guild): Right-click → Apps → `Translate Message` → choose language → Confirm
+- Translate a message (guild): Right-click → Apps → `Translate (Choose Language)` → choose language → Confirm
 
 ---
 
