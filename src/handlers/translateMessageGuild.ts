@@ -251,10 +251,10 @@ export const commandTranslateMessageGuild = factory.command(command, async (c) =
     try {
       const res = createLanguageSelectMessage(messageId);
       console.log("Created language select message:", res);
-      return c.followup(res);
+      await c.followup(res);
     } catch (err) {
       console.error("Error creating language select message:", err);
-      return c.followup({
+      await c.followup({
         flags: V2EphemeralFlag,
         content: "### ❌ An error occurred while creating the language selection menu. Please try again later.",
       });
