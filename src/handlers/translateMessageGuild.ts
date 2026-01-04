@@ -167,6 +167,14 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
     );
   }
 
+  containerComps.push(new Layout("Separator").spacing(2));
+  containerComps.push(
+    new Layout("Action Row").components(
+      new Button("translate_message_guild_confirm", selectedTarget ? "Translate" : "Select a target language", "Success")
+        .disabled(!selectedTarget),
+    ),
+  );
+
   comps.push(container.components(...containerComps).toJSON());
 
   return {
@@ -174,29 +182,6 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
     components: comps,
   };
 }
-
-export const commandTranslateMessageGuild = factory.command(command, async (c) => {
-  if (c.interaction.data.type !== ApplicationCommandType.Message) return ackRequest(); // Type guard
-
-  const message = c.interaction.data.resolved.messages[c.interaction.data.target_id];
-  const text = (message?.content || "").trim();
-  if (!text) {
-    return c.res({
-      flags: V2EphemeralFlag,
-      content: "### ❌ The selected message has no content to translate.",
-    });
-  }
-
-  const channelId = c.interaction.channel.id;
-  const messageId = message.id;
-
-  return c.flags("EPHEMERAL").resDefer(async (c) => {
-    const id: DurableObjectId = c.env.DATA_CACHE.idFromName(`${channelId}:${messageId}`);
-    await c.env.DATA_CACHE.get(id).setData(`${channelId}:${messageId}`, text);
-
-    return c.followup(createLanguageSelectMessage(messageId));
-  });
-});
 
 function findSelectedValueInComponents<T>(components: APIMessageTopLevelComponent[], customIdPrefix: string): T | undefined {
   for (const comp of components) {
@@ -268,5 +253,28 @@ export const componentTranslateMessageGuild = factory.component(new Button("tran
 
     // Reply with translated embed as a follow-up (ephemeral to the user)
     return c.followup(buildTranstatedMessage(result, targetParam));
+  });
+});
+
+export const commandTranslateMessageGuild = factory.command(command, async (c) => {
+  if (c.interaction.data.type !== ApplicationCommandType.Message) return ackRequest(); // Type guard
+
+  const message = c.interaction.data.resolved.messages[c.interaction.data.target_id];
+  const text = (message?.content || "").trim();
+  if (!text) {
+    return c.res({
+      flags: V2EphemeralFlag,
+      content: "### ❌ The selected message has no content to translate.",
+    });
+  }
+
+  const channelId = c.interaction.channel.id;
+  const messageId = message.id;
+
+  return c.flags("EPHEMERAL").resDefer(async (c) => {
+    const id: DurableObjectId = c.env.DATA_CACHE.idFromName(`${channelId}:${messageId}`);
+    await c.env.DATA_CACHE.get(id).setData(`${channelId}:${messageId}`, text);
+
+    return c.followup(createLanguageSelectMessage(messageId));
   });
 });
