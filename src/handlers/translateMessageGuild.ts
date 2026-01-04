@@ -259,18 +259,7 @@ export const commandTranslateMessageGuild = factory.command(command, (c) =>
     try {
       const res = createLanguageSelectMessage(messageId);
       console.log("Created language select message:", res);
-      await c.followup("done").then(() => console.log("Language select message sent."));
-
-      // Testing
-      const api = makeApi();
-      for (const comp of res.components.filter((c) => c.type === ComponentType.Container)![0].components) {
-        await api.channels
-          .createMessage(channelId, {
-            flags: V2Flag,
-            components: [comp],
-          })
-          .then(() => console.log("Sent component:", comp));
-      }
+      await c.followup(res).then(() => console.log("Language select message sent."));
     } catch (err) {
       console.error("Error creating language select message:", err);
       await c.followup({
