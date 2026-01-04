@@ -10,11 +10,12 @@
     "cf-typegen": "wrangler types",
     "build": "tsc",
     "format": "prettier --write .",
-    "register": "tsc && node --env-file=.env dist/register.js"
+    "register": "tsx --env-file=.env src/register.ts"
   },
   "devDependencies": {
     "@types/node": "^25.0.3",
     "prettier": "^3.7.4",
+    "tsx": "^4.21.0",
     "typescript": "^5.5.2",
     "wrangler": "^4.54.0"
   },
