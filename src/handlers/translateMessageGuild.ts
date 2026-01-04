@@ -21,17 +21,6 @@ import {
   V2EphemeralFlag,
   V2Flag,
 } from "../utils.js";
-import { inlineCode } from "@discordjs/formatters";
-import { REST } from "@discordjs/rest";
-import { API } from "@discordjs/core/http-only";
-
-function makeApi() {
-  const rest = new REST({
-    version: "10",
-  }).setToken(process.env.DISCORD_TOKEN);
-
-  return new API(rest);
-}
 
 // A special command that only appears in guilds where the app is installed because otherwise we can't fetch a message to translate it.
 
@@ -56,6 +45,15 @@ const sourceLanguageChunks = SourceLanguages.reduce<SourceLanguageCode[][]>((chu
   return chunks;
 }, []);
 
+function extractDataFromSelectCustomId(customId: string) {
+  const parsed = JSON.parse(customId) as [string, string | undefined, number | undefined];
+  return {
+    messageId: parsed[0],
+    sourceOrTarget: parsed[1],
+    chunkIndex: parsed[2],
+  };
+}
+
 export const componentTargetLanguageSelect = factory.component(
   new Select("translate_message_guild_target", "String").placeholder("Select a target language"),
   async (c) => {
@@ -63,8 +61,8 @@ export const componentTargetLanguageSelect = factory.component(
 
     const values = c.interaction.data.values;
     const val = values.length ? values[0] : undefined;
-    const comps = c.interaction.message?.components ?? [];
-    const updated = createLanguageSelectMessage(extractMessageIdFromComponents(comps), "translate_message_guild_target", val);
+    const data = extractDataFromSelectCustomId(c.var.custom_id!);
+    const updated = createLanguageSelectMessage(data.messageId, data.sourceOrTarget, val);
     return c.update().res(updated);
   },
 );
@@ -76,8 +74,8 @@ export const componentSourceLanguageSelect = factory.component(
 
     const values = c.interaction.data.values;
     const val = values.length ? values[0] : undefined;
-    const comps = c.interaction.message?.components ?? [];
-    const updated = createLanguageSelectMessage(extractMessageIdFromComponents(comps), val, "translate_message_guild_source");
+    const data = extractDataFromSelectCustomId(c.var.custom_id!);
+    const updated = createLanguageSelectMessage(data.messageId, val, data.sourceOrTarget);
     return c.update().res(updated);
   },
 );
@@ -85,8 +83,8 @@ export const componentSourceLanguageSelect = factory.component(
 export const componentClearTargetLanguage = factory.component(
   new Button("translate_message_guild_target_clear", ["❌", "Clear Target Language"], "Secondary"),
   async (c) => {
-    const comps = c.interaction.message?.components ?? [];
-    const updated = createLanguageSelectMessage(extractMessageIdFromComponents(comps), undefined, "translate_message_guild_target");
+    const data = extractDataFromSelectCustomId(c.var.custom_id!);
+    const updated = createLanguageSelectMessage(data.messageId, data.sourceOrTarget, undefined);
     return c.update().res(updated);
   },
 );
@@ -94,24 +92,11 @@ export const componentClearTargetLanguage = factory.component(
 export const componentClearSourceLanguage = factory.component(
   new Button("translate_message_guild_source_clear", ["❌", "Clear Source Language"], "Secondary"),
   async (c) => {
-    const comps = c.interaction.message?.components ?? [];
-    const updated = createLanguageSelectMessage(extractMessageIdFromComponents(comps), undefined, "translate_message_guild_source");
+    const data = extractDataFromSelectCustomId(c.var.custom_id!);
+    const updated = createLanguageSelectMessage(data.messageId, undefined, data.sourceOrTarget);
     return c.update().res(updated);
   },
 );
-
-function extractMessageIdFromComponents(components: APIMessageTopLevelComponent[]): string {
-  for (const comp of components) {
-    if (comp.type === ComponentType.TextDisplay) {
-      const msgId = comp.content.replace(/[^0-9]/g, "");
-      const isId = /^\d{17,23}$/.test(msgId);
-      if (isId) {
-        return msgId;
-      }
-    }
-  }
-  throw new Error("Message ID not found in components. This should not happen!");
-}
 
 function createLanguageSelectMessage(messageId: string, selectedSource?: string, selectedTarget?: string) {
   const container = new Layout("Container").accent_color(0x5865f2);
@@ -121,7 +106,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
     containerComps.push(
       new Layout("Section")
         .components(new Content(`### Selected target language: **${AllLanguages[selectedTarget as TargetLanguageCode]}**`))
-        .accessory(componentClearTargetLanguage.component),
+        .accessory(componentClearTargetLanguage.component.custom_id(JSON.stringify([messageId, selectedSource])).toJSON()),
     );
   } else {
     containerComps.push(
@@ -130,7 +115,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
         type: 1,
         components: [
           componentTargetLanguageSelect.component
-            .custom_id(String(index))
+            .custom_id(JSON.stringify([selectedSource, index]))
             .options(
               ...chunk.map((lang) => ({
                 label: AllLanguages[lang],
@@ -149,7 +134,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
     containerComps.push(
       new Layout("Section")
         .components(new Content(`### Selected source language: **${AllLanguages[selectedSource as SourceLanguageCode]}**`))
-        .accessory(componentClearSourceLanguage.component),
+        .accessory(componentClearSourceLanguage.component.custom_id(JSON.stringify([messageId, selectedTarget])).toJSON()),
     );
   } else {
     containerComps.push(
@@ -158,7 +143,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
         type: 1,
         components: [
           componentSourceLanguageSelect.component
-            .custom_id(String(index))
+            .custom_id(JSON.stringify([messageId, selectedTarget, index]))
             .options(
               ...chunk.map((lang) => ({
                 label: AllLanguages[lang],
@@ -172,7 +157,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
     );
   }
 
-  containerComps.push(new Layout("Separator").spacing(2).divider(true));
+  containerComps.push(new Layout("Separator").spacing(2).divider(false));
   containerComps.push({
     type: 1,
     components: [
@@ -183,7 +168,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
     ],
   });
 
-  const comps = [new Content(inlineCode(messageId)).toJSON(), container.components(...containerComps).toJSON()];
+  const comps = [container.components(...containerComps).toJSON()];
 
   return {
     flags: V2Flag,
