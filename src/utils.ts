@@ -1,5 +1,5 @@
 import { DeepLClient, TextResult, type LanguageCode, type SourceLanguageCode, type TargetLanguageCode } from "deepl-node";
-import { APIInteraction, MessageFlags } from "discord-api-types/v10";
+import { APIInteraction, Locale, MessageFlags } from "discord-api-types/v10";
 import { Cryption, makeCryptor } from "./cryption";
 
 export type CommonLanguageCode = Exclude<SourceLanguageCode, "en" | "pt">;
@@ -113,16 +113,27 @@ export enum DeeplVersion {
   Pro = 2,
 }
 
-export class UserSetting {
+interface UserSettings {
+  deeplApiKey: string;
+  deeplVersion: DeeplVersion;
+  /**
+   * Preferred target language for translations. If null, no preference is set and needs to be derived from the user's locale.
+   */
+  preferredLanguage: TargetLanguageCode | null;
+}
+
+export class UserSetting implements UserSettings {
   constructor(
     public readonly deeplApiKey: string,
     public readonly deeplVersion: DeeplVersion = DeeplVersion.Free,
+    public readonly preferredLanguage: TargetLanguageCode | null = null,
   ) {}
 }
 
-type DBUserSetting = {
+type DBUserSettings = {
   deepl_api_key: string;
   deepl_version: DeeplVersion;
+  preferred_language: TargetLanguageCode | null;
 };
 
 export class DBHelper {
@@ -134,16 +145,32 @@ export class DBHelper {
     this.cryptor = makeCryptor();
   }
 
+  /**
+   * Retrieves user settings from the database for a given user ID.
+   * @param userId - The unique identifier of the user
+   * @returns A promise that resolves to a UserSetting object containing the decrypted API key and version,
+   *          or null if no settings are found for the user
+   * @throws May throw if database query fails or decryption fails
+   */
   async getSetting(userId: string): Promise<UserSetting | null> {
     const res = await this.db
-      .prepare("SELECT deepl_api_key, deepl_version FROM settings WHERE user_id = ?")
+      .prepare("SELECT deepl_api_key, deepl_version, preferred_language FROM settings WHERE user_id = ?")
       .bind(userId)
-      .first<DBUserSetting>();
+      .first<DBUserSettings>();
     if (!res) return null;
     return new UserSetting(this.cryptor.decrypt(res.deepl_api_key), res.deepl_version);
   }
 
-  async setSetting(userId: string, apiKey: string, deeplVersion: DeeplVersion = DeeplVersion.Free): Promise<void> {
+  /**
+   * Sets or updates the DeepL API key and version for a user.
+   *
+   * @param userId - The unique identifier of the user
+   * @param apiKey - The DeepL API key to be encrypted and stored
+   * @param deeplVersion - The DeepL API version to use (defaults to Free tier)
+   * @returns A promise that resolves when the key data has been successfully stored
+   * @throws May throw an error if the database operation fails
+   */
+  async setKeyData(userId: string, apiKey: string, deeplVersion: DeeplVersion = DeeplVersion.Free): Promise<void> {
     const valueStr = JSON.stringify(this.cryptor.encrypt(apiKey));
     await this.db
       .prepare(
@@ -153,7 +180,41 @@ export class DBHelper {
       .run();
   }
 
-  async removeSetting(userId: string): Promise<void> {
+  /**
+   * Unsets the DeepL API key and version for a user.
+   * @param userId - The ID of the user whose API key data should be cleared
+   * @returns A promise that resolves when the operation is complete
+   */
+  async unsetKeyData(userId: string): Promise<void> {
+    await this.db.prepare("UPDATE settings SET deepl_api_key = NULL, deepl_version = NULL WHERE user_id = ?").bind(userId).run();
+  }
+
+  /**
+   * Sets the preferred language for a user.
+   * @param userId - The unique identifier of the user.
+   * @param language - The target language code to set as preferred, or null to remove the preference.
+   * @returns A promise that resolves when the operation completes.
+   */
+  async setPreferredLanguage(userId: string, language: TargetLanguageCode | null): Promise<void> {
+    if (language === null) {
+      await this.db.prepare("UPDATE settings SET preferred_language = NULL WHERE user_id = ?").bind(userId).run();
+      return;
+    }
+
+    await this.db
+      .prepare(
+        "INSERT INTO settings (user_id, preferred_language) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET preferred_language = excluded.preferred_language",
+      )
+      .bind(userId, language)
+      .run();
+  }
+
+  /**
+   * Removes all settings for a specific user from the database.
+   * @param userId - The ID of the user whose settings should be deleted.
+   * @returns A promise that resolves when the deletion is complete.
+   */
+  async removeSettings(userId: string): Promise<void> {
     await this.db.prepare("DELETE FROM settings WHERE user_id = ?").bind(userId).run();
   }
 }
@@ -211,4 +272,21 @@ export function buildTranstatedMessage(deeplResponse: TextResult, targetLang: Ta
       },
     ],
   };
+}
+
+export async function getPreferredTargetLanguage(
+  db: DBHelper,
+  userId: string,
+  interactionLocale: string | Locale,
+): Promise<TargetLanguageCode> {
+  const userCfg = await db.getSetting(userId);
+  if (userCfg?.preferredLanguage) {
+    return userCfg.preferredLanguage;
+  }
+  // Derive from interaction locale or fallback to en-US
+  const localeLang = interactionLocale.slice(0, 2) as TargetLanguageCode;
+  if (TargetLanguages.includes(localeLang)) {
+    return localeLang;
+  }
+  return "en-US";
 }

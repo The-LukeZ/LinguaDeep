@@ -2,10 +2,12 @@ import { SourceLanguageCode, TargetLanguageCode } from "deepl-node";
 import { Command, Option } from "discord-hono";
 import { factory } from "../init.js";
 import {
+  ackRequest,
   AllLanguages,
   Autocomplete,
   buildTranstatedMessage,
   DBHelper,
+  getPreferredTargetLanguage,
   getUserIdFromInteraction,
   makeDeeplClient,
   SourceLanguages,
@@ -26,11 +28,11 @@ const command = new Command("translate", "Translate text using DeepL").options(
   new Option("source_lang", "Source language (e.g., en, de, fr) | Auto-detected if not provided", "String").autocomplete(true),
 );
 
-export const autocomplete = factory.autocomplete<Var>(
+export const commandTranslate = factory.autocomplete<Var>(
   command,
   (c) => {
-    if (!c.focused) return c.resAutocomplete({ choices: [{ name: "Nothing found...", value: "nothing" }] });
-    if (c.focused.name !== "target_lang" && c.focused.name !== "source_lang") return new Response(null, { status: 204 }); // Gotta acknowledge the request anyways
+    if (!c.focused) return ackRequest();
+    if (c.focused.name !== "target_lang" && c.focused.name !== "source_lang") return ackRequest(); // Gotta acknowledge the request anyways
 
     if (c.focused.name === "target_lang") {
       return c.resAutocomplete(
@@ -48,6 +50,8 @@ export const autocomplete = factory.autocomplete<Var>(
   async (c) => {
     return c.flags("EPHEMERAL").resDefer(async (c) => {
       c.set("db", new DBHelper(c.env.DB));
+      const userId = getUserIdFromInteraction(c.interaction);
+
       const text = (c.var.text || "").trim();
       if (!text) return c.followup("### ❌ Text to translate is required.");
 
@@ -59,11 +63,8 @@ export const autocomplete = factory.autocomplete<Var>(
           ? (sourceCandidate as SourceLanguageCode)
           : undefined;
 
-      // Validate target language — must be a supported, non-empty code.
-      const targetCandidate = (c.var.target_lang || "").trim();
-      if (!targetCandidate) {
-        return c.followup("### ❌ Target language is required. Please specify it using the `target_lang` option.");
-      }
+      const targetCandidate =
+        (c.var.target_lang || "").trim() || (await getPreferredTargetLanguage(c.get("db"), userId, c.interaction.locale));
       if (!TargetLanguages.includes(targetCandidate as TargetLanguageCode)) {
         return c.followup(`### ❌ Invalid target language: ${targetCandidate}`);
       }
@@ -72,7 +73,6 @@ export const autocomplete = factory.autocomplete<Var>(
       console.log("Using source language:", sourceParam ?? "auto-detect");
       console.log("Using target language:", targetParam);
 
-      const userId = getUserIdFromInteraction(c.interaction);
       const userCfg = await c.get("db").getSetting(userId);
       if (!userCfg?.deeplApiKey) return c.followup("### ❌ DeepL API key not set. Please set it using `/key set` command.");
 

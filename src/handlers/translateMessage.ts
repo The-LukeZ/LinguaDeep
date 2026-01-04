@@ -6,6 +6,7 @@ import {
   buildTranstatedMessage,
   CommonLanguageCode,
   DBHelper,
+  getPreferredTargetLanguage,
   getUserIdFromInteraction,
   makeDeeplClient,
 } from "../utils.js";
@@ -24,9 +25,10 @@ export const commandTranslateMessage = factory.command(command, async (c) => {
     const text = (message?.content || "").trim();
     if (!text) return c.followup("### ❌ The selected message has no content to translate.");
 
-    const targetLang = c.interaction.locale.slice(0, 2) as CommonLanguageCode;
-
     c.set("db", new DBHelper(c.env.DB));
+
+    const targetLang = await getPreferredTargetLanguage(c.get("db"), getUserIdFromInteraction(c.interaction), c.interaction.locale);
+
     const userId = getUserIdFromInteraction(c.interaction);
     const userCfg = await c.get("db").getSetting(userId);
     if (!userCfg?.deeplApiKey) return c.followup("### ❌ DeepL API key not set. Please set it using `/key set` command.");

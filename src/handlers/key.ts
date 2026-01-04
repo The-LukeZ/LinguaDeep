@@ -1,7 +1,7 @@
+import { codeBlock, inlineCode, spoiler } from "@discordjs/formatters";
 import { Command, Option, SubCommand } from "discord-hono";
 import { factory } from "../init.js";
 import { DBHelper, DeeplVersion, EphemeralFlag, makeDeeplClient, UserSetting } from "../utils.js";
-import { codeBlock, inlineCode, spoiler } from "@discordjs/formatters";
 
 const command = new Command("key", "Manage your API key").options(
   new SubCommand("set", "Set your DeepL API key").options(
@@ -30,12 +30,12 @@ export const commandKey = factory.command(command, async (c) => {
 
   if (subcommand === "set") {
     const cfg = new UserSetting(c.var.api_key, (c.var.deepl_version as DeeplVersion) || 1);
-    await c.get("db").setSetting(userId, cfg.deeplApiKey, cfg.deeplVersion);
+    await c.get("db").setKeyData(userId, cfg.deeplApiKey, cfg.deeplVersion);
     return c.res({ content: "### ✅ Your DeepL API key has been set successfully.", flags: EphemeralFlag });
   }
 
   if (subcommand === "remove") {
-    await c.get("db").removeSetting(userId);
+    await c.get("db").removeSettings(userId);
     return c.res({ content: "### ✅ Your DeepL API key has been removed successfully.", flags: EphemeralFlag });
   }
 
