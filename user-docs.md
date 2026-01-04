@@ -1,4 +1,4 @@
-# LinguaDeep Discord Bot User Wiki
+Welcome to the LinguaDeep Discord Bot User Wiki!
 
 ## Command Overview 🛠️
 
