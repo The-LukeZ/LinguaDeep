@@ -67,7 +67,7 @@ export const componentSourceLanguageSelect = factory.component(new Select("trans
 });
 
 export const componentClearTargetLanguage = factory.component(
-  new Button("translate_message_guild_target_clear", ["❌", "Clear Target Language"], "Primary"),
+  new Button("translate_message_guild_target_clear", ["❌", "Clear Target Language"], "Secondary"),
   async (c) => {
     const comps = c.interaction.message?.components ?? [];
     const updated = createLanguageSelectMessage(extractMessageIdFromComponents(comps), undefined, "translate_message_guild_target");
@@ -76,7 +76,7 @@ export const componentClearTargetLanguage = factory.component(
 );
 
 export const componentClearSourceLanguage = factory.component(
-  new Button("translate_message_guild_source_clear", ["❌", "Clear Source Language"]),
+  new Button("translate_message_guild_source_clear", ["❌", "Clear Source Language"], "Secondary"),
   async (c) => {
     const comps = c.interaction.message?.components ?? [];
     const updated = createLanguageSelectMessage(extractMessageIdFromComponents(comps), undefined, "translate_message_guild_source");
@@ -230,8 +230,8 @@ export const componentTranslateMessageGuild = factory.component(new Button("tran
   });
 });
 
-export const commandTranslateMessageGuild = factory.command(command, (ctx) =>
-  ctx.flags("EPHEMERAL", "IS_COMPONENTS_V2").resDefer(async (c) => {
+export const commandTranslateMessageGuild = factory.command(command, (c) =>
+  c.flags("EPHEMERAL", "IS_COMPONENTS_V2").resDefer(async (c) => {
     if (c.interaction.data.type !== ApplicationCommandType.Message) return ackRequest(); // Type guard
     const message = c.interaction.data.resolved.messages[c.interaction.data.target_id];
     const text = (message?.content || "").trim();
@@ -250,7 +250,8 @@ export const commandTranslateMessageGuild = factory.command(command, (ctx) =>
 
     try {
       const res = createLanguageSelectMessage(messageId);
-      await c.flags("IS_COMPONENTS_V2").followup(res);
+      console.log("Created language select message:", res);
+      await c.followup("Test").then(() => console.log("Language select message sent."));
     } catch (err) {
       console.error("Error creating language select message:", err);
       await c.followup({
