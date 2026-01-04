@@ -1,7 +1,13 @@
 import { ButtonBuilder, ContainerBuilder, inlineCode, StringSelectMenuBuilder, TextDisplayBuilder } from "@discordjs/builders";
 import { SourceLanguageCode, TargetLanguageCode } from "deepl-node";
-import { ApplicationCommandType, ApplicationIntegrationType, InteractionContextType } from "discord-api-types/v10";
-import { Button, Command } from "discord-hono";
+import {
+  APIMessageTopLevelComponent,
+  ApplicationCommandType,
+  ApplicationIntegrationType,
+  ComponentType,
+  InteractionContextType,
+} from "discord-api-types/v10";
+import { Button, Command, Select } from "discord-hono";
 import { factory } from "../init.js";
 import {
   ackRequest,
@@ -38,6 +44,159 @@ const sourceLanguageChunks = SourceLanguages.reduce<SourceLanguageCode[][]>((chu
   return chunks;
 }, []);
 
+export const componentTargetLanguageSelect = factory.component(new Select("translate_message_guild_target", "String"), async (c) => {
+  if (c.interaction.data.component_type !== ComponentType.StringSelect) return ackRequest(); // Type guard
+
+  const values = c.interaction.data.values;
+  const val = values.length ? values[0] : undefined;
+  const comps = c.interaction.message?.components ?? [];
+  const updated = createLanguageSelectMessage(extractMessageIdFromComponents(comps), "translate_message_guild_target", val);
+  return c.update().res(updated);
+});
+
+export const componentSourceLanguageSelect = factory.component(new Select("translate_message_guild_source", "String"), async (c) => {
+  if (c.interaction.data.component_type !== ComponentType.StringSelect) return ackRequest(); // Type guard
+
+  const values = c.interaction.data.values;
+  const val = values.length ? values[0] : undefined;
+  const comps = c.interaction.message?.components ?? [];
+  const updated = createLanguageSelectMessage(extractMessageIdFromComponents(comps), val, "translate_message_guild_source");
+  return c.update().res(updated);
+});
+
+export const componentClearTargetLanguage = factory.component(
+  new Button("translate_message_guild_target_clear", "Clear Target Language"),
+  async (c) => {
+    const comps = c.interaction.message?.components ?? [];
+    const updated = createLanguageSelectMessage(extractMessageIdFromComponents(comps), undefined, "translate_message_guild_target");
+    return c.update().res(updated);
+  },
+);
+
+export const componentClearSourceLanguage = factory.component(
+  new Button("translate_message_guild_source_clear", "Clear Source Language"),
+  async (c) => {
+    const comps = c.interaction.message?.components ?? [];
+    const updated = createLanguageSelectMessage(extractMessageIdFromComponents(comps), undefined, "translate_message_guild_source");
+    return c.update().res(updated);
+  },
+);
+
+function extractMessageIdFromComponents(components: APIMessageTopLevelComponent[]): string {
+  for (const comp of components) {
+    if (comp.type === ComponentType.TextDisplay) {
+      const content = (comp as any).text; // TextDisplay component
+      const match = content.match(/`(\d{17,23})`/);
+      if (match) {
+        return match[1];
+      }
+    }
+  }
+  throw new Error("Message ID not found in components. This should not happen!");
+}
+
+function createLanguageSelectMessage(messageId: string, selectedSource?: string, selectedTarget?: string) {
+  const comps: { toJSON: () => APIMessageTopLevelComponent }[] = [new TextDisplayBuilder().setContent(inlineCode(messageId))];
+  const container = new ContainerBuilder()
+    .setAccentColor(0x5865f2)
+    .addTextDisplayComponents((t) => t.setContent("### Select target language:"))
+    .addActionRowComponents<StringSelectMenuBuilder>((ar) => {
+      const menus = targetLanguageChunks.map((chunk, index) =>
+        new StringSelectMenuBuilder()
+          .setCustomId(`translate_message_guild_target_${index}`)
+          .setPlaceholder("Select target language")
+          .addOptions(
+            ...chunk.map((lang) => ({
+              label: AllLanguages[lang],
+              value: lang,
+              default: !!(selectedTarget && selectedTarget === lang),
+            })),
+          ),
+      );
+      menus.forEach((menu) => ar.addComponents(menu));
+      return ar;
+    })
+    .addSeparatorComponents((s) => s.setSpacing(2));
+
+  if (selectedTarget) {
+    container.addSectionComponents((s) =>
+      s
+        .addTextDisplayComponents((t) =>
+          t.setContent(`### Selected target language: **${AllLanguages[selectedTarget as TargetLanguageCode]}**`),
+        )
+        .setButtonAccessory(
+          new ButtonBuilder()
+            .setCustomId(`translate_message_guild_target_clear`)
+            .setLabel("Clear Selection")
+            .setEmoji({ name: "❌" })
+            .setStyle(4),
+        ),
+    );
+  } else {
+    container
+      .addTextDisplayComponents((t) => t.setContent("### Select target language:"))
+      .addActionRowComponents<StringSelectMenuBuilder>((ar) => {
+        const menus = targetLanguageChunks.map((chunk, index) =>
+          new StringSelectMenuBuilder()
+            .setCustomId(`translate_message_guild_target_${index}`)
+            .setPlaceholder("Select target language (or leave empty for auto-detect)")
+            .setMinValues(0)
+            .addOptions(
+              ...chunk.map((lang) => ({
+                label: AllLanguages[lang],
+                value: lang,
+                default: !!(selectedTarget && selectedTarget === lang),
+              })),
+            ),
+        );
+        menus.forEach((menu) => ar.addComponents(menu));
+        return ar;
+      });
+  }
+  container.addSeparatorComponents((s) => s.setSpacing(2));
+
+  if (selectedSource) {
+    container.addSectionComponents((s) =>
+      s
+        .addTextDisplayComponents((t) =>
+          t.setContent(`### Selected source language: **${AllLanguages[selectedSource as SourceLanguageCode]}**`),
+        )
+        .setButtonAccessory(
+          new ButtonBuilder()
+            .setCustomId(`translate_message_guild_source_clear`)
+            .setLabel("Clear Selection")
+            .setEmoji({ name: "❌" })
+            .setStyle(4),
+        ),
+    );
+  } else {
+    container
+      .addTextDisplayComponents((t) => t.setContent("### (Optional) Select source language:"))
+      .addActionRowComponents<StringSelectMenuBuilder>((ar) => {
+        const menus = sourceLanguageChunks.map((chunk, index) =>
+          new StringSelectMenuBuilder()
+            .setCustomId(`translate_message_guild_source_${index}`)
+            .setPlaceholder("Select source language (or leave empty for auto-detect)")
+            .setMinValues(0)
+            .addOptions(
+              ...chunk.map((lang) => ({
+                label: AllLanguages[lang],
+                value: lang,
+                default: !!(selectedSource && selectedSource === lang),
+              })),
+            ),
+        );
+        menus.forEach((menu) => ar.addComponents(menu));
+        return ar;
+      });
+  }
+
+  return {
+    flags: V2EphemeralFlag,
+    components: comps.map((c) => c.toJSON()),
+  };
+}
+
 export const commandTranslateMessageGuild = factory.command(command, async (c) => {
   if (c.interaction.data.type !== ApplicationCommandType.Message) return ackRequest(); // Type guard
 
@@ -57,138 +216,33 @@ export const commandTranslateMessageGuild = factory.command(command, async (c) =
     const id: DurableObjectId = c.env.DATA_CACHE.idFromName(`${channelId}:${messageId}`);
     await c.env.DATA_CACHE.get(id).setData(`${channelId}:${messageId}`, text);
 
-    return c.followup({
-      flags: V2EphemeralFlag,
-      components: [
-        new TextDisplayBuilder().setContent(inlineCode(message.id)).toJSON(),
-        new ContainerBuilder()
-          .setAccentColor(0x5865f2)
-          .addTextDisplayComponents((t) => t.setContent("### Select target language:"))
-          .addActionRowComponents<StringSelectMenuBuilder>((ar) => {
-            const menus = targetLanguageChunks.map((chunk, index) =>
-              new StringSelectMenuBuilder()
-                .setCustomId(`translate_message_guild_target_${index}`)
-                .setPlaceholder("Select target language")
-                .addOptions(
-                  ...chunk.map((lang) => ({
-                    label: AllLanguages[lang],
-                    value: lang,
-                  })),
-                ),
-            );
-            menus.forEach((menu) => ar.addComponents(menu));
-            return ar;
-          })
-          .addSeparatorComponents((s) => s)
-          .addTextDisplayComponents((t) => t.setContent("### (Optional) Select source language:"))
-          .addActionRowComponents<StringSelectMenuBuilder>((ar) => {
-            const menus = sourceLanguageChunks.map((chunk, index) =>
-              new StringSelectMenuBuilder()
-                .setCustomId(`translate_message_guild_source_${index}`)
-                .setPlaceholder("Select source language (or leave empty for auto-detect)")
-                .addOptions(
-                  ...chunk.map((lang) => ({
-                    label: AllLanguages[lang],
-                    value: lang,
-                  })),
-                ),
-            );
-            menus.forEach((menu) => ar.addComponents(menu));
-            return ar;
-          })
-          .addSeparatorComponents((s) => s.setSpacing(2))
-          .addActionRowComponents((ar) =>
-            ar.addComponents(
-              new ButtonBuilder()
-                .setCustomId(`translate_message_guild_confirm`)
-                .setLabel("Translate Message")
-                .setEmoji({
-                  name: "✅",
-                })
-                .setStyle(1),
-            ),
-          )
-          .toJSON(),
-      ],
-    });
+    return c.followup(createLanguageSelectMessage(messageId));
   });
 });
 
-// Helper: find selected value within nested components
-function findSelectedValueInComponents(comps: any[], prefix: string): string | undefined {
-  for (const comp of comps) {
-    if (comp.components) {
-      const nested = findSelectedValueInComponents(comp.components, prefix);
-      if (nested) return nested;
-    }
-    if (typeof comp.custom_id === "string" && comp.custom_id.startsWith(prefix)) {
-      // Option list representations vary across contexts; check common shapes
-      const options = comp.options ?? comp.props?.options ?? comp.data?.options;
-      if (Array.isArray(options)) {
-        const sel = options.find((o: any) => o.default === true || o.selected === true);
-        if (sel) return sel.value;
+function findSelectedValueInComponents<T>(components: APIMessageTopLevelComponent[], customIdPrefix: string): T | undefined {
+  for (const comp of components) {
+    if (comp.type === ComponentType.ActionRow) {
+      for (const innerComp of comp.components) {
+        if (innerComp.type === ComponentType.StringSelect && innerComp.custom_id.startsWith(customIdPrefix)) {
+          const values = (innerComp as any).values as string[];
+          console.log(`Found selected values for ${customIdPrefix}:`, values);
+          if (values.length > 0) {
+            return values[0] as T;
+          }
+        }
       }
-      if (Array.isArray(comp.values) && comp.values.length > 0) return comp.values[0];
-      if (Array.isArray(comp.selected) && comp.selected.length > 0) return comp.selected[0];
     }
   }
-  return undefined;
 }
-
-// Update helper: marks the selected option as default on the matching select menu and returns new components
-function markSelectedInComponents(comps: any[], prefix: string, value: string): any[] {
-  return comps.map((comp) => {
-    if (comp.components) {
-      return { ...comp, components: markSelectedInComponents(comp.components, prefix, value) };
-    }
-    if (typeof comp.custom_id === "string" && comp.custom_id.startsWith(prefix)) {
-      const options = comp.options ?? comp.props?.options ?? comp.data?.options;
-      if (Array.isArray(options)) {
-        const newOptions = options.map((o: any) => ({ ...o, default: o.value === value }));
-        // Preserve shape depending on where the options live
-        if (comp.options) return { ...comp, options: newOptions };
-        if (comp.props && comp.props.options) return { ...comp, props: { ...comp.props, options: newOptions } };
-        if (comp.data && comp.data.options) return { ...comp, data: { ...comp.data, options: newOptions } };
-      }
-    }
-    return comp;
-  });
-}
-
-// Handler for target select menus - simply updates the message to reflect selection
-export const componentTranslateMessageGuildTarget = factory.component(
-  new Button("translate_message_guild_target_", "") as any,
-  async (c: any) => {
-    const values = c.interaction.data.values as string[] | undefined;
-    if (!values || values.length === 0) return ackRequest();
-    const val = values[0];
-
-    const comps = c.interaction.message?.components ?? [];
-    const updated = markSelectedInComponents(comps, "translate_message_guild_target_", val);
-    return c.update().res({ components: updated } as any);
-  },
-);
-
-// Handler for source select menus - updates the message to reflect selection (optional)
-export const componentTranslateMessageGuildSource = factory.component(
-  new Button("translate_message_guild_source_", "") as any,
-  async (c: any) => {
-    const values = c.interaction.data.values as string[] | undefined;
-    if (!values) return ackRequest();
-    const val = values[0];
-
-    const comps = c.interaction.message?.components ?? [];
-    const updated = markSelectedInComponents(comps, "translate_message_guild_source_", val);
-    return c.update().res({ components: updated } as any);
-  },
-);
 
 // Confirm button - parses the target/source languages from the stored message components
-export const componentTranslateMessageGuild = factory.component(new Button("translate_message_guild_confirm", "") as any, async (c) => {
-  // Parse chosen languages from the message components
+export const componentTranslateMessageGuild = factory.component(new Button("translate_message_guild_confirm", ""), async (c) => {
   const comps = c.interaction.message?.components ?? [];
-  const target = findSelectedValueInComponents(comps, "translate_message_guild_target_") as TargetLanguageCode | undefined;
-  const source = findSelectedValueInComponents(comps, "translate_message_guild_source_") as SourceLanguageCode | undefined;
+
+  const target = findSelectedValueInComponents(comps, "translate_message_guild_target") as TargetLanguageCode | undefined;
+  const source = findSelectedValueInComponents(comps, "translate_message_guild_source") as SourceLanguageCode | undefined;
+  return c.res(String());
 
   if (!target) {
     return c.res({ flags: V2EphemeralFlag, content: "### ❌ Please select a target language before confirming." });
