@@ -1,5 +1,5 @@
-import type { LanguageCode, SourceLanguageCode, TargetLanguageCode } from "deepl-node";
-import { MessageFlags } from "discord-api-types/v10";
+import { DeepLClient, type LanguageCode, type SourceLanguageCode, type TargetLanguageCode } from "deepl-node";
+import { APIInteraction, MessageFlags } from "discord-api-types/v10";
 import { Cryption, makeCryptor } from "./cryption";
 
 export type CommonLanguageCode = Exclude<SourceLanguageCode, "en" | "pt">;
@@ -108,6 +108,18 @@ export const V2EphemeralFlag = EphemeralFlag | V2Flag;
 
 export const ackRequest = () => new Response(null, { status: 204 });
 
+export enum DeeplVersion {
+  Free = 1,
+  Pro = 2,
+}
+
+export class UserSetting {
+  constructor(
+    public readonly deeplApiKey: string,
+    public readonly deeplVersion: DeeplVersion = DeeplVersion.Free,
+  ) {}
+}
+
 export class DBHelper {
   readonly db: D1Database;
   readonly cryptor: Cryption;
@@ -117,26 +129,44 @@ export class DBHelper {
     this.cryptor = makeCryptor();
   }
 
-  async getSetting(userId: string): Promise<string | null> {
+  async getSetting(userId: string): Promise<UserSetting | null> {
     const res = await this.db
-      .prepare("SELECT deepl_api_key FROM settings WHERE user_id = ?")
+      .prepare("SELECT deepl_api_key, deepl_version FROM settings WHERE user_id = ?")
       .bind(userId)
-      .first<{ deepl_api_key: string }>();
+      .first<UserSetting>();
     if (!res) return null;
-    return this.cryptor.decrypt(res.deepl_api_key);
+    return new UserSetting(this.cryptor.decrypt(res.deeplApiKey), res.deeplVersion);
   }
 
-  async setSetting(userId: string, apiKey: string): Promise<void> {
+  async setSetting(userId: string, apiKey: string, deeplVersion: DeeplVersion = DeeplVersion.Free): Promise<void> {
     const valueStr = JSON.stringify(this.cryptor.encrypt(apiKey));
     await this.db
       .prepare(
-        "INSERT INTO settings (user_id, deepl_api_key) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET deepl_api_key = excluded.deepl_api_key",
+        "INSERT INTO settings (user_id, deepl_api_key, deepl_version) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET deepl_api_key = excluded.deepl_api_key, deepl_version = excluded.deepl_version",
       )
-      .bind(userId, valueStr)
+      .bind(userId, valueStr, deeplVersion)
       .run();
   }
 
   async removeSetting(userId: string): Promise<void> {
     await this.db.prepare("DELETE FROM settings WHERE user_id = ?").bind(userId).run();
   }
+}
+
+export const DeeplServerUrls = {
+  [DeeplVersion.Free]: "https://api-free.deepl.com",
+  [DeeplVersion.Pro]: "https://api.deepl.com",
+};
+
+export function getUserIdFromInteraction<T extends APIInteraction>(interaction: T): string {
+  return interaction.member ? interaction.member.user.id : interaction.user!.id;
+}
+
+export function makeDeeplClient(userCfg: UserSetting): DeepLClient {
+  return new DeepLClient(userCfg.deeplApiKey, {
+    appInfo: { appName: "LinguaDeep Discord Bot (https://linguadeep.thelukez.com)", appVersion: "0.0.0" },
+    maxRetries: 3,
+    sendPlatformInfo: true,
+    serverUrl: DeeplServerUrls[userCfg.deeplVersion],
+  });
 }

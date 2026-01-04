@@ -1,7 +1,7 @@
 import { Command, Option } from "discord-hono";
 import { factory } from "../init.js";
 import { SourceLanguageCode, TargetLanguageCode } from "deepl-node";
-import { AllLanguages, SourceLanguages, TargetLanguages } from "../utils.js";
+import { AllLanguages, DBHelper, getUserIdFromInteraction, makeDeeplClient, SourceLanguages, TargetLanguages } from "../utils.js";
 
 type Var = {
   text: string;
@@ -28,10 +28,33 @@ export const autocomplete = factory.autocomplete<Var>(
     return c.resAutocomplete({ choices: SourceLanguages.map((code) => ({ name: AllLanguages[code], value: code })) });
   },
   async (c) => {
-    const text = c.var.text;
-    const sourceLang = (c.var.source_lang as SourceLanguageCode) || c.interaction.user?.locale || undefined;
-    const targetLang = c.var.target_lang as TargetLanguageCode;
+    return c.resDefer(async (c) => {
+      c.set("db", new DBHelper(c.env.DB));
+      const text = c.var.text;
+      const sourceLang = (c.var.source_lang as SourceLanguageCode) || c.interaction.user?.locale || undefined;
+      const targetLang = c.var.target_lang as TargetLanguageCode;
 
-    return c.res(`Translating "${text}" from ${sourceLang || "auto-detected"} to ${targetLang || "client's language..."}`);
+      const userId = getUserIdFromInteraction(c.interaction);
+      const userCfg = await c.get("db").getSetting(userId);
+      if (!userCfg?.deeplApiKey) return c.res("### ❌ DeepL API key not set. Please set it using `/key set` command.");
+
+      const deepl = makeDeeplClient(userCfg);
+
+      const result = await deepl.translateText(text, sourceLang, targetLang);
+      return c.res({
+        embeds: [
+          {
+            title: "🌐 Translation Result",
+            description: result.text,
+            author: {
+              name: `From ${AllLanguages[result.detectedSourceLang]} to ${AllLanguages[targetLang]}`,
+            },
+            footer: {
+              text: `Billed: ${result.billedCharacters} characters`,
+            },
+          },
+        ],
+      });
+    });
   },
 );
