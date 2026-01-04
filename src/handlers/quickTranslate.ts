@@ -31,7 +31,6 @@ export const commandTranslateMessage = factory.command(command, async (c) => {
     if (!userCfg?.deeplApiKey) return c.followup(errorResponse("DeepL API key not set. Please set it using `/key set` command."));
 
     const targetLang = await getPreferredTargetLanguage(userCfg, c.interaction.locale);
-    console.log("Translating message text to:", userCfg.preferredLanguage, targetLang);
 
     const deepl = makeDeeplClient(userCfg);
 

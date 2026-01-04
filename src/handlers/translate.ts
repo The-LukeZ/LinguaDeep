@@ -71,9 +71,6 @@ export const commandTranslate = factory.autocomplete<Var>(
       }
       const targetParam = targetCandidate as TargetLanguageCode;
 
-      console.log("Using source language:", sourceParam ?? "auto-detect");
-      console.log("Using target language:", targetParam);
-
       if (!userCfg?.deeplApiKey) return c.followup(errorResponse("DeepL API key not set. Please set it using `/key set` command."));
 
       const deepl = makeDeeplClient(userCfg);
