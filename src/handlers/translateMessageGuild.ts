@@ -13,6 +13,7 @@ import {
   AllLanguages,
   buildTranstatedMessage,
   DBHelper,
+  EphemeralFlag,
   getUserIdFromInteraction,
   makeDeeplClient,
   SourceLanguages,
@@ -96,23 +97,8 @@ function extractMessageIdFromComponents(components: APIMessageTopLevelComponent[
 }
 
 function createLanguageSelectMessage(messageId: string, selectedSource?: string, selectedTarget?: string) {
-  const comps = [new Content(inlineCode(messageId))] as any[];
   const container = new Layout("Container").accent_color(0x5865f2);
-  const containerComps = [
-    new Content("### Select target language:"),
-    new Layout("Action Row").components(
-      ...targetLanguageChunks.map((chunk, index) =>
-        componentTargetLanguageSelect.component.custom_id(`translate_message_guild_target_${index}`).options(
-          ...chunk.map((lang) => ({
-            label: AllLanguages[lang],
-            value: lang,
-            default: !!(selectedTarget && selectedTarget === lang),
-          })),
-        ),
-      ),
-    ),
-    new Layout("Separator"),
-  ] as any[];
+  const containerComps = [] as any[];
 
   if (selectedTarget) {
     containerComps.push(
@@ -126,7 +112,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
       new Layout("Action Row").components(
         ...targetLanguageChunks.map((chunk, index) =>
           componentTargetLanguageSelect.component
-            .custom_id(`translate_message_guild_target_${index}`)
+            .custom_id(String(index))
             .options(
               ...chunk.map((lang) => ({
                 label: AllLanguages[lang],
@@ -153,7 +139,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
       new Layout("Action Row").components(
         ...sourceLanguageChunks.map((chunk, index) =>
           componentSourceLanguageSelect.component
-            .custom_id(`translate_message_guild_source_${index}`)
+            .custom_id(String(index))
             .options(
               ...chunk.map((lang) => ({
                 label: AllLanguages[lang],
@@ -170,13 +156,13 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
   containerComps.push(new Layout("Separator").spacing(2));
   containerComps.push(
     new Layout("Action Row").components(
-      new Button("translate_message_guild_confirm", selectedTarget ? "Translate" : "Select a target language", "Success").disabled(
-        !selectedTarget,
-      ),
+      new Button("translate_message_guild_confirm", selectedTarget ? "Translate" : "Select a target language", "Success")
+        .disabled(!selectedTarget)
+        .custom_id(JSON.stringify([messageId, selectedTarget, selectedSource].filter(Boolean))),
     ),
   );
 
-  comps.push(container.components(...containerComps).toJSON());
+  const comps = [container.components(...containerComps).toJSON()];
 
   return {
     flags: V2EphemeralFlag,
@@ -204,9 +190,11 @@ function findSelectedValueInComponents<T>(components: APIMessageTopLevelComponen
 export const componentTranslateMessageGuild = factory.component(new Button("translate_message_guild_confirm", ""), async (c) => {
   const comps = c.interaction.message?.components ?? [];
 
-  const target = findSelectedValueInComponents(comps, "translate_message_guild_target") as TargetLanguageCode | undefined;
-  const source = findSelectedValueInComponents(comps, "translate_message_guild_source") as SourceLanguageCode | undefined;
-  return c.res(String(`Target: ${target}\nSource: ${source}`));
+  const parsedCustomId: [string, string | undefined, string | undefined] = JSON.parse(c.var.custom_id!);
+  const messageId = parsedCustomId[0];
+  const target = parsedCustomId[1] as TargetLanguageCode | undefined;
+  const source = parsedCustomId[2] as SourceLanguageCode | undefined;
+  return c.res({ content: String(`Message ID: ${messageId}\nTarget: ${target}\nSource: ${source}`), flags: EphemeralFlag });
 
   if (!target) {
     return c.res({ flags: V2EphemeralFlag, content: "### ❌ Please select a target language before confirming." });
