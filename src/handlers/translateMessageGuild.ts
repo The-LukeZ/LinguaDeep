@@ -156,7 +156,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
 
   containerComps.push(new Layout("Separator").spacing(2));
   containerComps.push(
-    new Layout("Action Row").components(
+    new Components().row(
       new Button("translate_message_guild_confirm", selectedTarget ? "Translate" : "Select a target language", "Success")
         .disabled(!selectedTarget)
         .custom_id(JSON.stringify([messageId, selectedTarget, selectedSource].filter(Boolean))),
