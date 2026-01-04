@@ -49,12 +49,16 @@ export const autocomplete = factory.autocomplete<Var>(
     return c.flags("EPHEMERAL").resDefer(async (c) => {
       c.set("db", new DBHelper(c.env.DB));
       const text = c.var.text;
-      const sourceLang = (c.var.source_lang as SourceLanguageCode) || c.interaction.user?.locale || undefined;
-      const targetLang = c.var.target_lang as TargetLanguageCode;
+      const sourceLang = ((c.var.source_lang || c.interaction.user?.locale?.slice(0, 2)) as SourceLanguageCode) || undefined;
+      const targetLang = c.var.target_lang;
+
+      if (!targetLang) {
+        return c.followup("### ❌ Target language is required. Please specify it using the `target_lang` option.");
+      }
 
       const userId = getUserIdFromInteraction(c.interaction);
       const userCfg = await c.get("db").getSetting(userId);
-      if (!userCfg?.deeplApiKey) return c.res("### ❌ DeepL API key not set. Please set it using `/key set` command.");
+      if (!userCfg?.deeplApiKey) return c.followup("### ❌ DeepL API key not set. Please set it using `/key set` command.");
 
       const deepl = makeDeeplClient(userCfg);
 
