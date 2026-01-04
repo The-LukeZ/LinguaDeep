@@ -1,4 +1,5 @@
 import type { LanguageCode, SourceLanguageCode, TargetLanguageCode } from "deepl-node";
+import { MessageFlags } from "discord-api-types/v10";
 
 export type CommonLanguageCode = Exclude<SourceLanguageCode, "en" | "pt">;
 
@@ -99,3 +100,7 @@ export const TargetLanguages: TargetLanguageCode[] = [
   "zh-HANS",
   "zh-HANT",
 ];
+
+export const EphemeralFlag = MessageFlags.Ephemeral;
+export const V2Flag = MessageFlags.IsComponentsV2;
+export const V2EphemeralFlag = EphemeralFlag | V2Flag;
