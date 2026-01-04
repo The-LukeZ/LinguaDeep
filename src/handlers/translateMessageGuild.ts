@@ -1,4 +1,3 @@
-import { ButtonBuilder, ContainerBuilder, inlineCode, StringSelectMenuBuilder, TextDisplayBuilder } from "@discordjs/builders";
 import { SourceLanguageCode, TargetLanguageCode } from "deepl-node";
 import {
   APIMessageTopLevelComponent,
@@ -7,7 +6,7 @@ import {
   ComponentType,
   InteractionContextType,
 } from "discord-api-types/v10";
-import { Button, Command, Select } from "discord-hono";
+import { Button, Command, Content, Layout, Select } from "discord-hono";
 import { factory } from "../init.js";
 import {
   ackRequest,
@@ -20,6 +19,7 @@ import {
   TargetLanguages,
   V2EphemeralFlag,
 } from "../utils.js";
+import { inlineCode } from "@discordjs/formatters";
 
 // A special command that only appears in guilds where the app is installed because otherwise we can't fetch a message to translate it.
 
@@ -65,7 +65,7 @@ export const componentSourceLanguageSelect = factory.component(new Select("trans
 });
 
 export const componentClearTargetLanguage = factory.component(
-  new Button("translate_message_guild_target_clear", "Clear Target Language"),
+  new Button("translate_message_guild_target_clear", ["❌", "Clear Target Language"], "Primary"),
   async (c) => {
     const comps = c.interaction.message?.components ?? [];
     const updated = createLanguageSelectMessage(extractMessageIdFromComponents(comps), undefined, "translate_message_guild_target");
@@ -74,7 +74,7 @@ export const componentClearTargetLanguage = factory.component(
 );
 
 export const componentClearSourceLanguage = factory.component(
-  new Button("translate_message_guild_source_clear", "Clear Source Language"),
+  new Button("translate_message_guild_source_clear", ["❌", "Clear Source Language"]),
   async (c) => {
     const comps = c.interaction.message?.components ?? [];
     const updated = createLanguageSelectMessage(extractMessageIdFromComponents(comps), undefined, "translate_message_guild_source");
@@ -96,104 +96,80 @@ function extractMessageIdFromComponents(components: APIMessageTopLevelComponent[
 }
 
 function createLanguageSelectMessage(messageId: string, selectedSource?: string, selectedTarget?: string) {
-  const comps: { toJSON: () => APIMessageTopLevelComponent }[] = [new TextDisplayBuilder().setContent(inlineCode(messageId))];
-  const container = new ContainerBuilder()
-    .setAccentColor(0x5865f2)
-    .addTextDisplayComponents((t) => t.setContent("### Select target language:"))
-    .addActionRowComponents<StringSelectMenuBuilder>((ar) => {
-      const menus = targetLanguageChunks.map((chunk, index) =>
-        new StringSelectMenuBuilder()
-          .setCustomId(`translate_message_guild_target_${index}`)
-          .setPlaceholder("Select target language")
-          .addOptions(
-            ...chunk.map((lang) => ({
-              label: AllLanguages[lang],
-              value: lang,
-              default: !!(selectedTarget && selectedTarget === lang),
-            })),
-          ),
-      );
-      menus.forEach((menu) => ar.addComponents(menu));
-      return ar;
-    })
-    .addSeparatorComponents((s) => s.setSpacing(2));
+  const comps = [new Content(inlineCode(messageId))] as any[];
+  const container = new Layout("Container").accent_color(0x5865f2);
+  const containerComps = [
+    new Content("### Select target language:"),
+    new Layout("Action Row").components(
+      ...targetLanguageChunks.map((chunk, index) =>
+        componentTargetLanguageSelect.component.custom_id(`translate_message_guild_target_${index}`).options(
+          ...chunk.map((lang) => ({
+            label: AllLanguages[lang],
+            value: lang,
+            default: !!(selectedTarget && selectedTarget === lang),
+          })),
+        ),
+      ),
+    ),
+    new Layout("Separator"),
+  ] as any[];
 
   if (selectedTarget) {
-    container.addSectionComponents((s) =>
-      s
-        .addTextDisplayComponents((t) =>
-          t.setContent(`### Selected target language: **${AllLanguages[selectedTarget as TargetLanguageCode]}**`),
-        )
-        .setButtonAccessory(
-          new ButtonBuilder()
-            .setCustomId(`translate_message_guild_target_clear`)
-            .setLabel("Clear Selection")
-            .setEmoji({ name: "❌" })
-            .setStyle(4),
-        ),
+    containerComps.push(
+      new Layout("Section")
+        .components(new Content(`### Selected target language: **${AllLanguages[selectedTarget as TargetLanguageCode]}**`))
+        .accessory(componentClearTargetLanguage.component),
     );
   } else {
-    container
-      .addTextDisplayComponents((t) => t.setContent("### Select target language:"))
-      .addActionRowComponents<StringSelectMenuBuilder>((ar) => {
-        const menus = targetLanguageChunks.map((chunk, index) =>
-          new StringSelectMenuBuilder()
-            .setCustomId(`translate_message_guild_target_${index}`)
-            .setPlaceholder("Select target language (or leave empty for auto-detect)")
-            .setMinValues(0)
-            .addOptions(
+    containerComps.push(
+      new Content("### Select target language:"),
+      new Layout("Action Row").components(
+        ...targetLanguageChunks.map((chunk, index) =>
+          componentTargetLanguageSelect.component
+            .custom_id(`translate_message_guild_target_${index}`)
+            .options(
               ...chunk.map((lang) => ({
                 label: AllLanguages[lang],
                 value: lang,
                 default: !!(selectedTarget && selectedTarget === lang),
               })),
-            ),
-        );
-        menus.forEach((menu) => ar.addComponents(menu));
-        return ar;
-      });
+            )
+            .toJSON(),
+        ),
+      ),
+    );
   }
-  container.addSeparatorComponents((s) => s.setSpacing(2));
+  containerComps.push(new Layout("Separator").spacing(2));
 
   if (selectedSource) {
-    container.addSectionComponents((s) =>
-      s
-        .addTextDisplayComponents((t) =>
-          t.setContent(`### Selected source language: **${AllLanguages[selectedSource as SourceLanguageCode]}**`),
-        )
-        .setButtonAccessory(
-          new ButtonBuilder()
-            .setCustomId(`translate_message_guild_source_clear`)
-            .setLabel("Clear Selection")
-            .setEmoji({ name: "❌" })
-            .setStyle(4),
-        ),
+    containerComps.push(
+      new Layout("Section")
+        .components(new Content(`### Selected source language: **${AllLanguages[selectedSource as SourceLanguageCode]}**`))
+        .accessory(componentClearSourceLanguage.component),
     );
   } else {
-    container
-      .addTextDisplayComponents((t) => t.setContent("### (Optional) Select source language:"))
-      .addActionRowComponents<StringSelectMenuBuilder>((ar) => {
-        const menus = sourceLanguageChunks.map((chunk, index) =>
-          new StringSelectMenuBuilder()
-            .setCustomId(`translate_message_guild_source_${index}`)
-            .setPlaceholder("Select source language (or leave empty for auto-detect)")
-            .setMinValues(0)
-            .addOptions(
+    containerComps.push(
+      new Content("### (Optional) Select source language:"),
+      new Layout("Action Row").components(
+        ...sourceLanguageChunks.map((chunk, index) =>
+          componentSourceLanguageSelect.component
+            .custom_id(`translate_message_guild_source_${index}`)
+            .options(
               ...chunk.map((lang) => ({
                 label: AllLanguages[lang],
                 value: lang,
                 default: !!(selectedSource && selectedSource === lang),
               })),
-            ),
-        );
-        menus.forEach((menu) => ar.addComponents(menu));
-        return ar;
-      });
+            )
+            .toJSON(),
+        ),
+      ),
+    );
   }
 
   return {
     flags: V2EphemeralFlag,
-    components: comps.map((c) => c.toJSON()),
+    components: comps,
   };
 }
 
@@ -242,7 +218,7 @@ export const componentTranslateMessageGuild = factory.component(new Button("tran
 
   const target = findSelectedValueInComponents(comps, "translate_message_guild_target") as TargetLanguageCode | undefined;
   const source = findSelectedValueInComponents(comps, "translate_message_guild_source") as SourceLanguageCode | undefined;
-  return c.res(String());
+  return c.res(String(`Target: ${target}\nSource: ${source}`));
 
   if (!target) {
     return c.res({ flags: V2EphemeralFlag, content: "### ❌ Please select a target language before confirming." });
