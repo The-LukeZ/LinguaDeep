@@ -5,7 +5,7 @@ import {
   ackRequest,
   AllLanguages,
   Autocomplete,
-  buildTranstatedMessage,
+  buildTranslatedMessage,
   DBHelper,
   errorResponse,
   getPreferredTargetLanguage,
@@ -79,7 +79,7 @@ export const commandTranslate = factory.autocomplete<Var>(
       const deepl = makeDeeplClient(userCfg);
 
       const result = await deepl.translateText(text, sourceParam || null, targetParam);
-      return c.followup(buildTranstatedMessage(result, targetParam));
+      return c.followup(buildTranslatedMessage(result, targetParam));
     });
   },
 );

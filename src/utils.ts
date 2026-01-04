@@ -258,7 +258,7 @@ export class Autocomplete {
   }
 }
 
-export function buildTranstatedMessage(deeplResponse: TextResult, targetLang: TargetLanguageCode) {
+export function buildTranslatedMessage(deeplResponse: TextResult, targetLang: TargetLanguageCode) {
   return {
     embeds: [
       {

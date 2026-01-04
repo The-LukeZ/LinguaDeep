@@ -1,19 +1,8 @@
-import { SourceLanguageCode, TargetLanguageCode } from "deepl-node";
+import { TargetLanguageCode } from "deepl-node";
+import { ApplicationIntegrationType } from "discord-api-types/v10";
 import { Command, Option, SubCommand } from "discord-hono";
 import { factory } from "../init.js";
-import {
-  ackRequest,
-  AllLanguages,
-  Autocomplete,
-  buildTranstatedMessage,
-  DBHelper,
-  errorResponse,
-  getUserIdFromInteraction,
-  makeDeeplClient,
-  SourceLanguages,
-  TargetLanguages,
-} from "../utils.js";
-import { ApplicationIntegrationType } from "discord-api-types/v10";
+import { ackRequest, AllLanguages, Autocomplete, DBHelper, errorResponse, getUserIdFromInteraction, TargetLanguages } from "../utils.js";
 
 type Var = {
   language: TargetLanguageCode;
