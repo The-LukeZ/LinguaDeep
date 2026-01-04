@@ -153,7 +153,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
   containerComps.push({
     type: 1,
     components: [
-      new Button("translate_message_guild_confirm", selectedTarget ? "Translate" : "Select a target language", "Success")
+      new Button("translate_message_confirm", selectedTarget ? "Translate" : "Select a target language", "Success")
         .disabled(!selectedTarget)
         .custom_id([messageId, selectedTarget, selectedSource].filter(Boolean).join("/"))
         .toJSON(),
@@ -168,8 +168,8 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
   };
 }
 
-// Confirm button - parses the target/source languages from the stored message components
-export const componentTranslateMessageGuild = factory.component(new Button("translate_message_guild_confirm", ""), async (c) => {
+// Confirm button
+export const componentTranslateMessageConfirm = factory.component(new Button("translate_message_confirm", ""), async (c) => {
   const channelId = c.interaction.channel.id;
   const [messageId, target, source] = c.var.custom_id!.split("/");
 
@@ -177,9 +177,8 @@ export const componentTranslateMessageGuild = factory.component(new Button("tran
     return c.res(errorResponse("Please select a target language before confirming."));
   }
 
-  return c.resDefer(async (c) => {
+  return c.flags("COMPONENTS_V2").resDefer(async (c) => {
     // Retrieve the message text from the DataCache durable object (cached when the command was run)
-    await c.followup("Translating...");
     const key = `${channelId}:${messageId}`;
     const id: DurableObjectId = c.env.DATA_CACHE.idFromName(key);
     const stub = c.env.DATA_CACHE.get(id);
