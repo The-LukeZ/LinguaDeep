@@ -14,7 +14,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "prod_linguadeep"
+      "database_name": "prod_linguadeep",
+      "database_id": "00244566-0324-4247-b94e-5e7542482d0f"
     }
   ]
 }
