@@ -1,4 +1,4 @@
-import { DeepLClient, type LanguageCode, type SourceLanguageCode, type TargetLanguageCode } from "deepl-node";
+import { DeepLClient, TextResult, type LanguageCode, type SourceLanguageCode, type TargetLanguageCode } from "deepl-node";
 import { APIInteraction, MessageFlags } from "discord-api-types/v10";
 import { Cryption, makeCryptor } from "./cryption";
 
@@ -195,4 +195,20 @@ export class Autocomplete {
     );
     return { choices: filtered.slice(0, 25) }; // Discord only allows max 25 choices
   }
+}
+
+export function buildTranstatedMessage(deeplResponse: TextResult, targetLang: TargetLanguageCode) {
+  return {
+    embeds: [
+      {
+        author: {
+          name: `🌐 From ${AllLanguages[deeplResponse.detectedSourceLang]} to ${AllLanguages[targetLang]}`,
+        },
+        description: deeplResponse.text,
+        footer: {
+          text: `Billed: ${deeplResponse.billedCharacters} characters`,
+        },
+      },
+    ],
+  };
 }

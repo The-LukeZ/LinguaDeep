@@ -4,6 +4,7 @@ import { factory } from "../init.js";
 import {
   AllLanguages,
   Autocomplete,
+  buildTranstatedMessage,
   DBHelper,
   getUserIdFromInteraction,
   makeDeeplClient,
@@ -78,20 +79,7 @@ export const autocomplete = factory.autocomplete<Var>(
       const deepl = makeDeeplClient(userCfg);
 
       const result = await deepl.translateText(text, sourceParam || null, targetParam);
-      return c.followup({
-        embeds: [
-          {
-            title: "🌐 Translation Result",
-            description: result.text,
-            author: {
-              name: `From ${AllLanguages[result.detectedSourceLang]} to ${AllLanguages[targetParam]}`,
-            },
-            footer: {
-              text: `Billed: ${result.billedCharacters} characters`,
-            },
-          },
-        ],
-      });
+      return c.followup(buildTranstatedMessage(result, targetParam));
     });
   },
 );
