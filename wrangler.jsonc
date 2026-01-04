@@ -3,7 +3,7 @@
   "name": "linguadeep",
   "main": "src/index.ts",
   "compatibility_date": "2026-01-03",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [ "nodejs_compat" ],
   "observability": {
     "enabled": true,
   },
@@ -18,4 +18,16 @@
       "database_id": "00244566-0324-4247-b94e-5e7542482d0f",
     },
   ],
+  "durable_objects": {
+    "bindings": [ {
+        "name": "DATA_CACHE",
+        "class_name": "DataCache",
+      } ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [ "DataCache" ]
+    }
+  ]
 }
