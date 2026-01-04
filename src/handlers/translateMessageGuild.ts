@@ -244,7 +244,7 @@ export const commandTranslateMessageGuild = factory.command(command, async (c) =
   const channelId = c.interaction.channel.id;
   const messageId = message.id;
 
-  return c.flags("EPHEMERAL").resDefer(async (c) => {
+  return c.flags("EPHEMERAL", "IS_COMPONENTS_V2").resDefer(async (c) => {
     const id: DurableObjectId = c.env.DATA_CACHE.idFromName(`${channelId}:${messageId}`);
     await c.env.DATA_CACHE.get(id).setData(`${channelId}:${messageId}`, text);
 
