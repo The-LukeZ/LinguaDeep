@@ -39,11 +39,11 @@ export const AllLanguages: Record<LanguageCode, string> = {
   uk: "Ukrainian",
   vi: "Vietnamese",
   zh: "Chinese",
+  pt: "Portuguese",
   "pt-BR": "Portuguese (Brazilian)",
   "pt-PT": "Portuguese (European)",
   "zh-HANS": "Chinese (Simplified)",
   "zh-HANT": "Chinese (Traditional)",
-  pt: "Portuguese",
 } as const;
 
 const CommonLanguages: Record<CommonLanguageCode, string> = {
