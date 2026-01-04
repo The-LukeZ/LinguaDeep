@@ -168,7 +168,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
   };
 }
 
-// Confirm button - replies with ephemeral message, then edits it
+// Confirm button - uses resDefer to show loading state, then followup with result
 export const componentTranslateMessageConfirm = factory.component(new Button("translate_message_confirm", ""), async (c) => {
   const channelId = c.interaction.channel.id;
   const [messageId, target, source] = c.var.custom_id!.split("/");
@@ -177,55 +177,45 @@ export const componentTranslateMessageConfirm = factory.component(new Button("tr
     return c.res(errorResponse("Please select a target language before confirming."));
   }
 
-  // Reply with initial ephemeral message
-  return c.flags("IS_COMPONENTS_V2", "EPHEMERAL").res({
-    content: "🔄 Translating message...",
-  }, async (c) => {
-    // Now edit the reply with the translation result
-    try {
-      // Retrieve the message text from the DataCache durable object (cached when the command was run)
-      const key = `${channelId}:${messageId}`;
-      const id: DurableObjectId = c.env.DATA_CACHE.idFromName(key);
-      const stub = c.env.DATA_CACHE.get(id);
-      const cachedText = await stub.getData(key);
-      
-      if (!cachedText) {
-        return c.followup(
-          errorResponse(
-            "⚠️ The cached message has expired.\nPlease run the **Translate Message** command on the message again to recreate the cache and try again.",
-            false,
-          ),
-        );
-      }
-
-      const text = cachedText.trim();
-      if (!text) {
-        return c.followup(errorResponse("The selected message has no content to translate."));
-      }
-
-      // Translation setup
-      c.set("db", new DBHelper(c.env.DB));
-      const userId = getUserIdFromInteraction(c.interaction);
-      const userCfg = await c.get("db").getSetting(userId);
-      
-      if (!userCfg?.deeplApiKey) {
-        return c.followup(errorResponse("DeepL API key not set. Please set it using `/key set` command."));
-      }
-
-      const deepl = makeDeeplClient(userCfg);
-
-      const sourceParam: SourceLanguageCode | null =
-        source && SourceLanguages.includes(source as SourceLanguageCode) ? (source as SourceLanguageCode) : null;
-      const targetParam = target as TargetLanguageCode;
-
-      const result = await deepl.translateText(text, sourceParam || null, targetParam);
-
-      // Edit the initial reply with the translated message
-      return c.followup(buildTranslatedMessage(result, targetParam));
-    } catch (err) {
-      console.error("Translation error:", err);
-      return c.followup(errorResponse("An error occurred during translation. Please try again later."));
+  // Use resDefer without IS_COMPONENTS_V2 flag, only EPHEMERAL
+  return c.flags("EPHEMERAL").resDefer(async (c) => {
+    // Retrieve the message text from the DataCache durable object (cached when the command was run)
+    const key = `${channelId}:${messageId}`;
+    const id: DurableObjectId = c.env.DATA_CACHE.idFromName(key);
+    const stub = c.env.DATA_CACHE.get(id);
+    const cachedText = await stub.getData(key);
+    
+    if (!cachedText) {
+      return c.followup(
+        errorResponse(
+          "⚠️ The cached message has expired.\nPlease run the **Translate Message** command on the message again to recreate the cache and try again.",
+          false,
+        ),
+      );
     }
+
+    const text = cachedText.trim();
+    if (!text) return c.followup(errorResponse("The selected message has no content to translate."));
+
+    // Translation setup
+    c.set("db", new DBHelper(c.env.DB));
+    const userId = getUserIdFromInteraction(c.interaction);
+    const userCfg = await c.get("db").getSetting(userId);
+    
+    if (!userCfg?.deeplApiKey) {
+      return c.followup(errorResponse("DeepL API key not set. Please set it using `/key set` command."));
+    }
+
+    const deepl = makeDeeplClient(userCfg);
+
+    const sourceParam: SourceLanguageCode | null =
+      source && SourceLanguages.includes(source as SourceLanguageCode) ? (source as SourceLanguageCode) : null;
+    const targetParam = target as TargetLanguageCode;
+
+    const result = await deepl.translateText(text, sourceParam || null, targetParam);
+
+    // Reply with translated embed as a follow-up (ephemeral to the user)
+    return c.followup(buildTranslatedMessage(result, targetParam));
   });
 });
 
