@@ -175,3 +175,24 @@ export function makeDeeplClient(userCfg: UserSetting): DeepLClient {
     serverUrl: DeeplServerUrls[userCfg.deeplVersion],
   });
 }
+
+export class Autocomplete {
+  private _choices: { name: string; value: string }[] = [];
+  private _focusedValue: string;
+
+  constructor(focusedValue?: string) {
+    this._focusedValue = focusedValue?.toLowerCase() || "";
+  }
+
+  choices(...choices: { name: string; value: string }[]): Autocomplete {
+    this._choices.push(...choices);
+    return this;
+  }
+
+  toJSON(): { choices: { name: string; value: string }[] } {
+    const filtered = this._choices.filter(
+      (choice) => choice.name.toLowerCase().includes(this._focusedValue) || choice.value.toLowerCase().includes(this._focusedValue),
+    );
+    return { choices: filtered.slice(0, 25) }; // Discord only allows max 25 choices
+  }
+}

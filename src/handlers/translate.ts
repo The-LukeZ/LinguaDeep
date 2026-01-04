@@ -1,7 +1,15 @@
-import { Autocomplete, Command, Option } from "discord-hono";
+import { Command, Option } from "discord-hono";
 import { factory } from "../init.js";
 import { SourceLanguageCode, TargetLanguageCode } from "deepl-node";
-import { AllLanguages, DBHelper, getUserIdFromInteraction, makeDeeplClient, SourceLanguages, TargetLanguages } from "../utils.js";
+import {
+  AllLanguages,
+  Autocomplete,
+  DBHelper,
+  getUserIdFromInteraction,
+  makeDeeplClient,
+  SourceLanguages,
+  TargetLanguages,
+} from "../utils.js";
 
 type Var = {
   text: string;
@@ -21,14 +29,19 @@ export const autocomplete = factory.autocomplete<Var>(
   command,
   (c) => {
     if (!c.focused) return c.resAutocomplete({ choices: [{ name: "Nothing found...", value: "nothing" }] });
-    if (c.focused.name === "text") return new Response(null, { status: 204 }); // Gotta acknowledge the request anyways
+    if (c.focused.name !== "target_lang" && c.focused.name !== "source_lang") return new Response(null, { status: 204 }); // Gotta acknowledge the request anyways
+
     if (c.focused.name === "target_lang") {
       return c.resAutocomplete(
-        new Autocomplete(c.focused.value).choices(...TargetLanguages.map((code) => ({ name: AllLanguages[code], value: code }))),
+        new Autocomplete(c.focused.value as string)
+          .choices(...TargetLanguages.map((code) => ({ name: AllLanguages[code], value: code })))
+          .toJSON(),
       );
     }
     return c.resAutocomplete(
-      new Autocomplete(c.focused.value).choices(...SourceLanguages.map((code) => ({ name: AllLanguages[code], value: code }))),
+      new Autocomplete(c.focused.value as string)
+        .choices(...SourceLanguages.map((code) => ({ name: AllLanguages[code], value: code })))
+        .toJSON(),
     );
   },
   async (c) => {
