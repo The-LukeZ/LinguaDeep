@@ -120,20 +120,19 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
   } else {
     containerComps.push(
       new Content("### Select target language:"),
-      new Components().row(
-        ...targetLanguageChunks.map((chunk, index) =>
-          componentTargetLanguageSelect.component
-            .custom_id(String(index))
-            .options(
-              ...chunk.map((lang) => ({
-                label: AllLanguages[lang],
-                value: lang,
-                default: !!(selectedTarget && selectedTarget === lang),
-              })),
-            )
-            .toJSON(),
-        ),
-      ),
+      ...targetLanguageChunks.map((chunk, index) => ({
+        type: 1,
+        components: componentTargetLanguageSelect.component
+          .custom_id(String(index))
+          .options(
+            ...chunk.map((lang) => ({
+              label: AllLanguages[lang],
+              value: lang,
+              default: !!(selectedTarget && selectedTarget === lang),
+            })),
+          )
+          .toJSON(),
+      })),
     );
   }
   containerComps.push(new Layout("Separator").spacing(2));
@@ -147,20 +146,19 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
   } else {
     containerComps.push(
       new Content("### (Optional) Select source language:"),
-      new Components().row(
-        ...sourceLanguageChunks.map((chunk, index) =>
-          componentSourceLanguageSelect.component
-            .custom_id(String(index))
-            .options(
-              ...chunk.map((lang) => ({
-                label: AllLanguages[lang],
-                value: lang,
-                default: !!(selectedSource && selectedSource === lang),
-              })),
-            )
-            .toJSON(),
-        ),
-      ),
+      ...sourceLanguageChunks.map((chunk, index) => ({
+        type: 1,
+        components: componentSourceLanguageSelect.component
+          .custom_id(String(index))
+          .options(
+            ...chunk.map((lang) => ({
+              label: AllLanguages[lang],
+              value: lang,
+              default: !!(selectedSource && selectedSource === lang),
+            })),
+          )
+          .toJSON(),
+      })),
     );
   }
 
@@ -265,7 +263,7 @@ export const commandTranslateMessageGuild = factory.command(command, (c) =>
 
       // Testing
       const api = makeApi();
-      for (const comp of res.components) {
+      for (const comp of res.components.filter((c) => c.type === ComponentType.Container)![0].components) {
         await api.channels
           .createMessage(channelId, {
             flags: V2Flag,
