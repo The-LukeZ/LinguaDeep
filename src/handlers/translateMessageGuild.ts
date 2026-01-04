@@ -22,6 +22,7 @@ import {
   V2Flag,
 } from "../utils.js";
 import { inlineCode } from "@discordjs/formatters";
+import { api } from "../discord.js";
 
 // A special command that only appears in guilds where the app is installed because otherwise we can't fetch a message to translate it.
 
@@ -251,11 +252,17 @@ export const commandTranslateMessageGuild = factory.command(command, (c) =>
     try {
       const res = createLanguageSelectMessage(messageId);
       console.log("Created language select message:", res);
-      await c
-        .followup({
-          components: res.components,
-        })
-        .then(() => console.log("Language select message sent."));
+      await c.followup("done").then(() => console.log("Language select message sent."));
+
+      // Testing
+      for (const comp of res.components) {
+        await api.channels
+          .createMessage(channelId, {
+            flags: V2Flag,
+            components: [comp],
+          })
+          .then(() => console.log("Sent component:", comp));
+      }
     } catch (err) {
       console.error("Error creating language select message:", err);
       await c.followup({
