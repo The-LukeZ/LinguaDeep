@@ -66,8 +66,6 @@ export const commandPreferredLanguage = factory.autocomplete<Var>(
       }
       const targetParam = targetCandidate as TargetLanguageCode;
 
-      console.log("Using target language:", targetParam);
-
       await c.get("db").setPreferredLanguage(userId, targetParam);
       return c.followup(`### ✅ Preferred language set to **${AllLanguages[targetParam]} (${targetParam})**.`);
     });

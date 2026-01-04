@@ -19,6 +19,7 @@ import {
   SourceLanguages,
   TargetLanguages,
   V2EphemeralFlag,
+  V2Flag,
 } from "../utils.js";
 import { inlineCode } from "@discordjs/formatters";
 
@@ -165,7 +166,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
   const comps = [new Content(inlineCode(messageId)).toJSON(), container.components(...containerComps).toJSON()];
 
   return {
-    flags: V2EphemeralFlag,
+    flags: V2Flag,
     components: comps,
   };
 }
@@ -229,28 +230,26 @@ export const componentTranslateMessageGuild = factory.component(new Button("tran
   });
 });
 
-export const commandTranslateMessageGuild = factory.command(command, async (c) => {
-  if (c.interaction.data.type !== ApplicationCommandType.Message) return ackRequest(); // Type guard
+export const commandTranslateMessageGuild = factory.command(command, (c) =>
+  c.flags("EPHEMERAL", "IS_COMPONENTS_V2").resDefer(async (c) => {
+    if (c.interaction.data.type !== ApplicationCommandType.Message) return ackRequest(); // Type guard
+    const message = c.interaction.data.resolved.messages[c.interaction.data.target_id];
+    const text = (message?.content || "").trim();
+    if (!text) {
+      return c.followup({
+        flags: V2Flag,
+        content: "### ❌ The selected message has no content to translate.",
+      });
+    }
 
-  const message = c.interaction.data.resolved.messages[c.interaction.data.target_id];
-  const text = (message?.content || "").trim();
-  if (!text) {
-    return c.res({
-      flags: V2EphemeralFlag,
-      content: "### ❌ The selected message has no content to translate.",
-    });
-  }
+    const channelId = c.interaction.channel.id;
+    const messageId = message.id;
 
-  const channelId = c.interaction.channel.id;
-  const messageId = message.id;
-
-  return c.flags("EPHEMERAL", "IS_COMPONENTS_V2").resDefer(async (c) => {
     const id: DurableObjectId = c.env.DATA_CACHE.idFromName(`${channelId}:${messageId}`);
     await c.env.DATA_CACHE.get(id).setData(`${channelId}:${messageId}`, text);
 
     try {
       const res = createLanguageSelectMessage(messageId);
-      console.log("Created language select message:", res);
       await c.followup(res);
     } catch (err) {
       console.error("Error creating language select message:", err);
@@ -259,5 +258,5 @@ export const commandTranslateMessageGuild = factory.command(command, async (c) =
         content: "### ❌ An error occurred while creating the language selection menu. Please try again later.",
       });
     }
-  });
-});
+  }),
+);
