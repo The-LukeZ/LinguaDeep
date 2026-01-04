@@ -23,7 +23,7 @@ const command = new Command("key", "Manage your API key").options(
   new SubCommand("view", "View your current DeepL API key"),
 );
 
-export const commandSettings = factory.command(command, async (c) => {
+export const commandKey = factory.command(command, async (c) => {
   c.set("db", new DBHelper(c.env.DB));
   const subcommand = c.sub.string;
   const userId = (c.interaction.user?.id || c.interaction.member?.user?.id)!;
@@ -67,7 +67,7 @@ export const commandSettings = factory.command(command, async (c) => {
           },
           {
             name: "Any Limit Reached?",
-            value: usage.character?.limitReached ? "✅" : "❌",
+            value: !!usage.character?.limitReached() ? "✅" : "❌",
             inline: true,
           },
         ],
