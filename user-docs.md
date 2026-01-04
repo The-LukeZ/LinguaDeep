@@ -102,4 +102,4 @@
 
 ## Where to get help & feedback 📬
 
-If you find a bug or want an enhancement, open an issue on GitHub please. For questions, reach out to the maintainer via [contact.lukez@proton.me](mailto:contact.lukez@proton.me).
+If you find a bug or want an enhancement, open an issue on GitHub please. For questions, reach out to the maintainer via the [contact form](https://tally.so/r/81NOJO).
