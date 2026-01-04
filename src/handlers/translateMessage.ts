@@ -17,10 +17,9 @@ import {
 
 // A special command that only appears in guilds where the app is installed because otherwise we can't fetch a message to translate it.
 
-const command = new Command("Translate Message")
+const command = new Command("Translate (Choose Language)")
   .type(ApplicationCommandType.Message)
-  .integration_types(ApplicationIntegrationType.GuildInstall)
-  .contexts(InteractionContextType.Guild);
+  .integration_types(ApplicationIntegrationType.UserInstall, ApplicationIntegrationType.GuildInstall);
 
 // Chunks of 25 languages for select menu options
 const targetLanguageChunks = TargetLanguages.sort().reduce<TargetLanguageCode[][]>((chunks, lang) => {
