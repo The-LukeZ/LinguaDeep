@@ -1,5 +1,6 @@
 import type { LanguageCode, SourceLanguageCode, TargetLanguageCode } from "deepl-node";
 import { MessageFlags } from "discord-api-types/v10";
+import { Cryption, makeCryptor } from "./cryption";
 
 export type CommonLanguageCode = Exclude<SourceLanguageCode, "en" | "pt">;
 
@@ -106,3 +107,36 @@ export const V2Flag = MessageFlags.IsComponentsV2;
 export const V2EphemeralFlag = EphemeralFlag | V2Flag;
 
 export const ackRequest = () => new Response(null, { status: 204 });
+
+export class DBHelper {
+  readonly db: D1Database;
+  readonly cryptor: Cryption;
+
+  constructor(db: D1Database) {
+    this.db = db;
+    this.cryptor = makeCryptor();
+  }
+
+  async getSetting(userId: string): Promise<string | null> {
+    const res = await this.db
+      .prepare("SELECT deepl_api_key FROM settings WHERE user_id = ?")
+      .bind(userId)
+      .first<{ deepl_api_key: string }>();
+    if (!res) return null;
+    return this.cryptor.decrypt(res.deepl_api_key);
+  }
+
+  async setSetting(userId: string, apiKey: string): Promise<void> {
+    const valueStr = JSON.stringify(this.cryptor.encrypt(apiKey));
+    await this.db
+      .prepare(
+        "INSERT INTO settings (user_id, deepl_api_key) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET deepl_api_key = excluded.deepl_api_key",
+      )
+      .bind(userId, valueStr)
+      .run();
+  }
+
+  async removeSetting(userId: string): Promise<void> {
+    await this.db.prepare("DELETE FROM settings WHERE user_id = ?").bind(userId).run();
+  }
+}

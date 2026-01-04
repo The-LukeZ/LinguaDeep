@@ -4,12 +4,6 @@ import { SourceLanguageCode, TargetLanguageCode } from "deepl-node";
 import { ackRequest, AllLanguages, SourceLanguages, TargetLanguages } from "../utils.js";
 import { ApplicationCommandType } from "discord-api-types/v10";
 
-type Var = {
-  text: string;
-  target_lang?: TargetLanguageCode;
-  source_lang?: SourceLanguageCode;
-};
-
 const command = new Command("Translate to Client Language", "Translate a message using DeepL").type(ApplicationCommandType.Message);
 
 export const commandTranslateMessage = factory.command(command, async (c) => {

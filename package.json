@@ -20,6 +20,7 @@
     "wrangler": "^4.54.0"
   },
   "dependencies": {
+    "@discordjs/formatters": "^0.6.2",
     "deepl-node": "^1.24.0",
     "discord-api-types": "^0.38.37",
     "discord-hono": "^0.20.1",

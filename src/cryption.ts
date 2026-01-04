@@ -45,4 +45,5 @@ export class Cryption {
   }
 }
 
-export const cryptor = new Cryption(process.env.ENCRYPTION_KEY || "default_fallback_encryption_key_1234"); // If this default is used, I'm going to be very sad
+export const makeCryptor = () => new Cryption(process.env.ENCRYPTION_KEY || "default_fallback_encryption_key_1234");
+// If this default is used, I'm going to be very sad
