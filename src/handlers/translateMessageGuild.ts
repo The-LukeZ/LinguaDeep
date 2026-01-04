@@ -115,7 +115,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
         type: 1,
         components: [
           componentTargetLanguageSelect.component
-            .custom_id(JSON.stringify([selectedSource, index]))
+            .custom_id(JSON.stringify([messageId, selectedSource, index]))
             .options(
               ...chunk.map((lang) => ({
                 label: AllLanguages[lang],
@@ -163,7 +163,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
     components: [
       new Button("translate_message_guild_confirm", selectedTarget ? "Translate" : "Select a target language", "Success")
         .disabled(!selectedTarget)
-        .custom_id(JSON.stringify([messageId, selectedTarget, selectedSource].filter(Boolean)))
+        .custom_id([messageId, selectedTarget, selectedSource].filter(Boolean).join("/"))
         .toJSON(),
     ],
   });
@@ -178,26 +178,14 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
 
 // Confirm button - parses the target/source languages from the stored message components
 export const componentTranslateMessageGuild = factory.component(new Button("translate_message_guild_confirm", ""), async (c) => {
-  const comps = c.interaction.message?.components ?? [];
-
-  const parsedCustomId: [string, string | undefined, string | undefined] = JSON.parse(c.var.custom_id!);
-  const messageId = parsedCustomId[0];
-  const target = parsedCustomId[1] as TargetLanguageCode | undefined;
-  const source = parsedCustomId[2] as SourceLanguageCode | undefined;
-  return c.res({ content: String(`Message ID: ${messageId}\nTarget: ${target}\nSource: ${source}`), flags: EphemeralFlag });
+  const channelId = c.interaction.channel.id;
+  const [messageId, target, source] = c.var.custom_id!.split("/");
 
   if (!target) {
     return c.res({ flags: V2EphemeralFlag, content: "### ❌ Please select a target language before confirming." });
   }
 
   return c.flags("EPHEMERAL").resDefer(async (c) => {
-    // Extract the message id from the inline code in the TextDisplay (we rendered it as `message.id`)
-    const compStr = JSON.stringify(comps);
-    const idMatch = compStr.match(/`(\d{17,23})`/);
-    if (!idMatch) return c.res({ flags: V2EphemeralFlag, content: "### ❌ Could not read the selected message id." });
-    const messageId = idMatch[1];
-    const channelId = c.interaction.channel.id;
-
     // Retrieve the message text from the DataCache durable object (cached when the command was run)
     const key = `${channelId}:${messageId}`;
     const id: DurableObjectId = c.env.DATA_CACHE.idFromName(key);
