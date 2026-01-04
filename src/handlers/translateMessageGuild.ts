@@ -103,10 +103,10 @@ export const componentClearSourceLanguage = factory.component(
 function extractMessageIdFromComponents(components: APIMessageTopLevelComponent[]): string {
   for (const comp of components) {
     if (comp.type === ComponentType.TextDisplay) {
-      const content = (comp as any).text; // TextDisplay component
-      const match = content.match(/`(\d{17,23})`/);
-      if (match) {
-        return match[1];
+      const msgId = comp.content.replace(/[^0-9]/g, "");
+      const isId = /^\d{17,23}$/.test(msgId);
+      if (isId) {
+        return msgId;
       }
     }
   }
