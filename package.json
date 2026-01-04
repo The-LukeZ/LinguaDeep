@@ -17,7 +17,7 @@
     "@types/node": "^25.0.3",
     "prettier": "^3.7.4",
     "tsx": "^4.21.0",
-    "typescript": "^5.5.2",
+    "typescript": "^5.9.3",
     "wrangler": "^4.54.0"
   },
   "dependencies": {
@@ -27,7 +27,7 @@
     "@discordjs/rest": "^2.6.0",
     "deepl-node": "^1.24.0",
     "discord-api-types": "^0.38.37",
-    "discord-hono": "^0.20.1",
+    "discord-hono": "^0.20.2",
     "hono": "^4.11.3"
   }
 }

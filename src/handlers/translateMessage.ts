@@ -11,7 +11,7 @@ import {
 } from "../utils.js";
 import { ApplicationCommandType, ApplicationIntegrationType } from "discord-api-types/v10";
 
-const command = new Command("Translate")
+const command = new Command("Translate to Set Language")
   .type(ApplicationCommandType.Message)
   .integration_types(ApplicationIntegrationType.UserInstall, ApplicationIntegrationType.GuildInstall);
 
