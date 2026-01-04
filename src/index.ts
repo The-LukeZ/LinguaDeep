@@ -3,7 +3,9 @@ import { verifyKey } from "./discordVerify";
 import * as handlers from "./handlers/index.js";
 import { factory } from "./init";
 
-export default factory.discord({ verify: verifyKey }).loader(Object.values(handlers));
+const discordApp = factory.discord({ verify: verifyKey }).loader(Object.values(handlers));
+
+export default discordApp;
 
 // Since the DO is a unique instance per message, we can "delete all" by just setting an alarm to clear the storage after a set time.
 export class DataCache extends DurableObject {
