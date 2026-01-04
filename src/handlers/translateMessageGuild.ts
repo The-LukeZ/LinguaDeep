@@ -6,7 +6,7 @@ import { ackRequest } from "../utils.js";
 
 // A special command that only appears in guilds where the app is installed because otherwise we can't fetch a message to translate it.
 
-const command = new Command("Translate Message", "Translate a message using DeepL")
+const command = new Command("Translate Message")
   .type(ApplicationCommandType.Message)
   .integration_types(ApplicationIntegrationType.GuildInstall)
   .contexts(InteractionContextType.Guild);

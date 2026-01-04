@@ -10,7 +10,7 @@ import {
 } from "../utils.js";
 import { ApplicationCommandType, ApplicationIntegrationType } from "discord-api-types/v10";
 
-const command = new Command("Translate to Client Language", "Translate a message using DeepL")
+const command = new Command("Translate to Client Language")
   .type(ApplicationCommandType.Message)
   .integration_types(ApplicationIntegrationType.UserInstall, ApplicationIntegrationType.GuildInstall);
 
