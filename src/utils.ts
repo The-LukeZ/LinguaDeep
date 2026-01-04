@@ -120,6 +120,11 @@ export class UserSetting {
   ) {}
 }
 
+type DBUserSetting = {
+  deepl_api_key: string;
+  deepl_version: DeeplVersion;
+};
+
 export class DBHelper {
   readonly db: D1Database;
   readonly cryptor: Cryption;
@@ -133,9 +138,9 @@ export class DBHelper {
     const res = await this.db
       .prepare("SELECT deepl_api_key, deepl_version FROM settings WHERE user_id = ?")
       .bind(userId)
-      .first<UserSetting>();
+      .first<DBUserSetting>();
     if (!res) return null;
-    return new UserSetting(this.cryptor.decrypt(res.deeplApiKey), res.deeplVersion);
+    return new UserSetting(this.cryptor.decrypt(res.deepl_api_key), res.deepl_version);
   }
 
   async setSetting(userId: string, apiKey: string, deeplVersion: DeeplVersion = DeeplVersion.Free): Promise<void> {
