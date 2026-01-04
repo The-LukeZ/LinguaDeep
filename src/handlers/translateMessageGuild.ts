@@ -167,6 +167,8 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
     );
   }
 
+  comps.push(container.components(...containerComps).toJSON());
+
   return {
     flags: V2EphemeralFlag,
     components: comps,
