@@ -64,7 +64,7 @@ export const commandTranslate = factory.autocomplete<Var>(
           : undefined;
 
       const userCfg = await c.get("db").getSetting(userId);
-      const targetCandidate = (c.var.target_lang || "").trim() || (await getPreferredTargetLanguage(userCfg, userId, c.interaction.locale));
+      const targetCandidate = (c.var.target_lang || "").trim() || (await getPreferredTargetLanguage(userCfg, c.interaction.locale));
       if (!TargetLanguages.includes(targetCandidate as TargetLanguageCode)) {
         return c.followup(`### ❌ Invalid target language: ${targetCandidate}`);
       }

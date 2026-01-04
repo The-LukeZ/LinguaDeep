@@ -158,7 +158,7 @@ export class DBHelper {
       .bind(userId)
       .first<DBUserSettings>();
     if (!res) return null;
-    return new UserSetting(this.cryptor.decrypt(res.deepl_api_key), res.deepl_version);
+    return new UserSetting(this.cryptor.decrypt(res.deepl_api_key), res.deepl_version, res.preferred_language);
   }
 
   /**
@@ -276,7 +276,6 @@ export function buildTranstatedMessage(deeplResponse: TextResult, targetLang: Ta
 
 export async function getPreferredTargetLanguage(
   userCfg: UserSettings | undefined | null,
-  userId: string,
   interactionLocale: string | Locale,
 ): Promise<TargetLanguageCode> {
   if (userCfg?.preferredLanguage) {
