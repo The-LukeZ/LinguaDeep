@@ -45,7 +45,7 @@ export const autocomplete = factory.autocomplete<Var>(
       const deepl = makeDeeplClient(userCfg);
 
       const result = await deepl.translateText(text, sourceLang, targetLang);
-      return c.res({
+      return c.followup({
         embeds: [
           {
             title: "🌐 Translation Result",
