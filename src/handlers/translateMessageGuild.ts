@@ -6,7 +6,7 @@ import {
   ComponentType,
   InteractionContextType,
 } from "discord-api-types/v10";
-import { Button, Command, Content, Layout, Select, Components } from "discord-hono";
+import { Button, Command, Content, Layout, Select } from "discord-hono";
 import { factory } from "../init.js";
 import {
   ackRequest,
@@ -122,16 +122,18 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
       new Content("### Select target language:"),
       ...targetLanguageChunks.map((chunk, index) => ({
         type: 1,
-        components: componentTargetLanguageSelect.component
-          .custom_id(String(index))
-          .options(
-            ...chunk.map((lang) => ({
-              label: AllLanguages[lang],
-              value: lang,
-              default: !!(selectedTarget && selectedTarget === lang),
-            })),
-          )
-          .toJSON(),
+        components: [
+          componentTargetLanguageSelect.component
+            .custom_id(String(index))
+            .options(
+              ...chunk.map((lang) => ({
+                label: AllLanguages[lang],
+                value: lang,
+                default: !!(selectedTarget && selectedTarget === lang),
+              })),
+            )
+            .toJSON(),
+        ],
       })),
     );
   }
@@ -148,28 +150,32 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
       new Content("### (Optional) Select source language:"),
       ...sourceLanguageChunks.map((chunk, index) => ({
         type: 1,
-        components: componentSourceLanguageSelect.component
-          .custom_id(String(index))
-          .options(
-            ...chunk.map((lang) => ({
-              label: AllLanguages[lang],
-              value: lang,
-              default: !!(selectedSource && selectedSource === lang),
-            })),
-          )
-          .toJSON(),
+        components: [
+          componentSourceLanguageSelect.component
+            .custom_id(String(index))
+            .options(
+              ...chunk.map((lang) => ({
+                label: AllLanguages[lang],
+                value: lang,
+                default: !!(selectedSource && selectedSource === lang),
+              })),
+            )
+            .toJSON(),
+        ],
       })),
     );
   }
 
   containerComps.push(new Layout("Separator").spacing(2));
-  containerComps.push(
-    new Components().row(
+  containerComps.push({
+    type: 1,
+    components: [
       new Button("translate_message_guild_confirm", selectedTarget ? "Translate" : "Select a target language", "Success")
         .disabled(!selectedTarget)
-        .custom_id(JSON.stringify([messageId, selectedTarget, selectedSource].filter(Boolean))),
-    ),
-  );
+        .custom_id(JSON.stringify([messageId, selectedTarget, selectedSource].filter(Boolean)))
+        .toJSON(),
+    ],
+  });
 
   const comps = [new Content(inlineCode(messageId)).toJSON(), container.components(...containerComps).toJSON()];
 
@@ -259,7 +265,18 @@ export const commandTranslateMessageGuild = factory.command(command, (c) =>
     try {
       const res = createLanguageSelectMessage(messageId);
       console.log("Created language select message:", res);
-      await c.followup(res).then(() => console.log("Language select message sent."));
+      await c.followup("done").then(() => console.log("Language select message sent."));
+
+      // Testing
+      const api = makeApi();
+      for (const comp of res.components.filter((c) => c.type === ComponentType.Container)![0].components) {
+        await api.channels
+          .createMessage(channelId, {
+            flags: V2Flag,
+            components: [comp],
+          })
+          .then(() => console.log("Sent component:", comp));
+      }
     } catch (err) {
       console.error("Error creating language select message:", err);
       await c.followup({
