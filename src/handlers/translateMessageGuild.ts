@@ -170,8 +170,9 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
   containerComps.push(new Layout("Separator").spacing(2));
   containerComps.push(
     new Layout("Action Row").components(
-      new Button("translate_message_guild_confirm", selectedTarget ? "Translate" : "Select a target language", "Success")
-        .disabled(!selectedTarget),
+      new Button("translate_message_guild_confirm", selectedTarget ? "Translate" : "Select a target language", "Success").disabled(
+        !selectedTarget,
+      ),
     ),
   );
 
@@ -275,6 +276,16 @@ export const commandTranslateMessageGuild = factory.command(command, async (c) =
     const id: DurableObjectId = c.env.DATA_CACHE.idFromName(`${channelId}:${messageId}`);
     await c.env.DATA_CACHE.get(id).setData(`${channelId}:${messageId}`, text);
 
-    return c.followup(createLanguageSelectMessage(messageId));
+    try {
+      const res = createLanguageSelectMessage(messageId);
+      console.log("Created language select message:", res);
+      return c.followup(res);
+    } catch (err) {
+      console.error("Error creating language select message:", err);
+      return c.followup({
+        flags: V2EphemeralFlag,
+        content: "### ❌ An error occurred while creating the language selection menu. Please try again later.",
+      });
+    }
   });
 });

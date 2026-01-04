@@ -29,5 +29,9 @@
       "tag": "v1",
       "new_sqlite_classes": [ "DataCache" ]
     }
-  ]
+  ],
+  "upload_source_maps": true,
+  "limits": {
+    "cpu_ms": 15000
+  }
 }
