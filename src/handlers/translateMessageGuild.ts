@@ -230,15 +230,15 @@ export const componentTranslateMessageGuild = factory.component(new Button("tran
   });
 });
 
-export const commandTranslateMessageGuild = factory.command(command, (c) =>
-  c.flags("EPHEMERAL", "IS_COMPONENTS_V2").resDefer(async (c) => {
+export const commandTranslateMessageGuild = factory.command(command, (ctx) =>
+  ctx.flags("EPHEMERAL", "IS_COMPONENTS_V2").resDefer(async (c) => {
     if (c.interaction.data.type !== ApplicationCommandType.Message) return ackRequest(); // Type guard
     const message = c.interaction.data.resolved.messages[c.interaction.data.target_id];
     const text = (message?.content || "").trim();
     if (!text) {
       return c.followup({
         flags: V2Flag,
-        content: "### ❌ The selected message has no content to translate.",
+        components: [new Content("### ❌ The selected message has no content to translate.")],
       });
     }
 
@@ -250,12 +250,12 @@ export const commandTranslateMessageGuild = factory.command(command, (c) =>
 
     try {
       const res = createLanguageSelectMessage(messageId);
-      await c.followup(res);
+      await c.flags("IS_COMPONENTS_V2").followup(res);
     } catch (err) {
       console.error("Error creating language select message:", err);
       await c.followup({
-        flags: V2EphemeralFlag,
-        content: "### ❌ An error occurred while creating the language selection menu. Please try again later.",
+        flags: V2Flag,
+        components: [new Content("### ❌ An error occurred while preparing the language selection. Please try again later.")],
       });
     }
   }),
