@@ -275,11 +275,10 @@ export function buildTranstatedMessage(deeplResponse: TextResult, targetLang: Ta
 }
 
 export async function getPreferredTargetLanguage(
-  db: DBHelper,
+  userCfg: UserSettings | undefined | null,
   userId: string,
   interactionLocale: string | Locale,
 ): Promise<TargetLanguageCode> {
-  const userCfg = await db.getSetting(userId);
   if (userCfg?.preferredLanguage) {
     return userCfg.preferredLanguage;
   }

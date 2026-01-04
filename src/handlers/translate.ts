@@ -63,8 +63,8 @@ export const commandTranslate = factory.autocomplete<Var>(
           ? (sourceCandidate as SourceLanguageCode)
           : undefined;
 
-      const targetCandidate =
-        (c.var.target_lang || "").trim() || (await getPreferredTargetLanguage(c.get("db"), userId, c.interaction.locale));
+      const userCfg = await c.get("db").getSetting(userId);
+      const targetCandidate = (c.var.target_lang || "").trim() || (await getPreferredTargetLanguage(userCfg, userId, c.interaction.locale));
       if (!TargetLanguages.includes(targetCandidate as TargetLanguageCode)) {
         return c.followup(`### ❌ Invalid target language: ${targetCandidate}`);
       }
@@ -73,7 +73,6 @@ export const commandTranslate = factory.autocomplete<Var>(
       console.log("Using source language:", sourceParam ?? "auto-detect");
       console.log("Using target language:", targetParam);
 
-      const userCfg = await c.get("db").getSetting(userId);
       if (!userCfg?.deeplApiKey) return c.followup("### ❌ DeepL API key not set. Please set it using `/key set` command.");
 
       const deepl = makeDeeplClient(userCfg);

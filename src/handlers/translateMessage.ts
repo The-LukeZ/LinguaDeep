@@ -25,11 +25,11 @@ export const commandTranslateMessage = factory.command(command, async (c) => {
 
     c.set("db", new DBHelper(c.env.DB));
 
-    const targetLang = await getPreferredTargetLanguage(c.get("db"), getUserIdFromInteraction(c.interaction), c.interaction.locale);
-
     const userId = getUserIdFromInteraction(c.interaction);
     const userCfg = await c.get("db").getSetting(userId);
     if (!userCfg?.deeplApiKey) return c.followup("### ❌ DeepL API key not set. Please set it using `/key set` command.");
+    
+    const targetLang = await getPreferredTargetLanguage(userCfg, getUserIdFromInteraction(c.interaction), c.interaction.locale);
 
     const deepl = makeDeeplClient(userCfg);
 
