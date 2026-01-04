@@ -162,28 +162,12 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
     ),
   );
 
-  const comps = [container.components(...containerComps).toJSON()];
+  const comps = [new Content(inlineCode(messageId)).toJSON(), container.components(...containerComps).toJSON()];
 
   return {
     flags: V2EphemeralFlag,
     components: comps,
   };
-}
-
-function findSelectedValueInComponents<T>(components: APIMessageTopLevelComponent[], customIdPrefix: string): T | undefined {
-  for (const comp of components) {
-    if (comp.type === ComponentType.ActionRow) {
-      for (const innerComp of comp.components) {
-        if (innerComp.type === ComponentType.StringSelect && innerComp.custom_id.startsWith(customIdPrefix)) {
-          const values = (innerComp as any).values as string[];
-          console.log(`Found selected values for ${customIdPrefix}:`, values);
-          if (values.length > 0) {
-            return values[0] as T;
-          }
-        }
-      }
-    }
-  }
 }
 
 // Confirm button - parses the target/source languages from the stored message components
