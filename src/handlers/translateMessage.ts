@@ -2,9 +2,7 @@ import { Command } from "discord-hono";
 import { factory } from "../init.js";
 import {
   ackRequest,
-  AllLanguages,
   buildTranstatedMessage,
-  CommonLanguageCode,
   DBHelper,
   getPreferredTargetLanguage,
   getUserIdFromInteraction,

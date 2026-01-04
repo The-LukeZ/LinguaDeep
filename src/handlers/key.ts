@@ -2,26 +2,29 @@ import { codeBlock, inlineCode, spoiler } from "@discordjs/formatters";
 import { Command, Option, SubCommand } from "discord-hono";
 import { factory } from "../init.js";
 import { DBHelper, DeeplVersion, EphemeralFlag, makeDeeplClient, UserSetting } from "../utils.js";
+import { ApplicationIntegrationType } from "discord-api-types/v10";
 
-const command = new Command("key", "Manage your API key").options(
-  new SubCommand("set", "Set your DeepL API key").options(
-    new Option("api_key", "Your DeepL API key", "String").required(true),
-    new Option("deepl_version", "DeepL API version (Free or Pro)", "Integer")
-      .choices(
-        {
-          name: "Free",
-          value: DeeplVersion.Free,
-        },
-        {
-          name: "Pro",
-          value: DeeplVersion.Pro,
-        },
-      )
-      .required(true),
-  ),
-  new SubCommand("remove", "Remove your DeepL API key"),
-  new SubCommand("view", "View your current DeepL API key"),
-);
+const command = new Command("key", "Manage your API key")
+  .options(
+    new SubCommand("set", "Set your DeepL API key").options(
+      new Option("api_key", "Your DeepL API key", "String").required(true),
+      new Option("deepl_version", "DeepL API version (Free or Pro)", "Integer")
+        .choices(
+          {
+            name: "Free",
+            value: DeeplVersion.Free,
+          },
+          {
+            name: "Pro",
+            value: DeeplVersion.Pro,
+          },
+        )
+        .required(true),
+    ),
+    new SubCommand("remove", "Remove your DeepL API key"),
+    new SubCommand("view", "View your current DeepL API key"),
+  )
+  .integration_types(ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall);
 
 export const commandKey = factory.command(command, async (c) => {
   c.set("db", new DBHelper(c.env.DB));

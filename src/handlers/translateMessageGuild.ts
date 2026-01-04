@@ -1,6 +1,6 @@
 import { Command } from "discord-hono";
 import { factory } from "../init.js";
-import { SourceLanguageCode, TargetLanguageCode } from "deepl-node";
+import { TargetLanguageCode } from "deepl-node";
 import { ApplicationCommandType, ApplicationIntegrationType, InteractionContextType } from "discord-api-types/v10";
 import { ackRequest } from "../utils.js";
 

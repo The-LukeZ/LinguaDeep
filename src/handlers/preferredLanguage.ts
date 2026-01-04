@@ -12,21 +12,24 @@ import {
   SourceLanguages,
   TargetLanguages,
 } from "../utils.js";
+import { ApplicationIntegrationType } from "discord-api-types/v10";
 
 type Var = {
   language: TargetLanguageCode;
 };
 
-const command = new Command("preferred-language", "Set your preferred target language for translations").options(
-  new SubCommand("set", "Set your preferred target language").options(
-    new Option("language", "Preferred target language (e.g., en, de, fr)", "String")
-      .required(true)
-      .autocomplete(true)
-      .min_length(2)
-      .max_length(7),
-  ),
-  new SubCommand("clear", "Clear your preferred target language"),
-);
+const command = new Command("preferred-language", "Set your preferred target language for translations")
+  .options(
+    new SubCommand("set", "Set your preferred target language").options(
+      new Option("language", "Preferred target language (e.g., en, de, fr)", "String")
+        .required(true)
+        .autocomplete(true)
+        .min_length(2)
+        .max_length(7),
+    ),
+    new SubCommand("clear", "Clear your preferred target language"),
+  )
+  .integration_types(ApplicationIntegrationType.UserInstall);
 
 export const commandPreferredLanguage = factory.autocomplete<Var>(
   command,
