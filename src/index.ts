@@ -2,6 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import { verifyKey } from "./discordVerify";
 import * as handlers from "./handlers/index.js";
 import { factory } from "./init";
+import { Hono } from "hono";
 
 const discordApp = factory.discord({ verify: verifyKey }).loader(Object.values(handlers));
 
