@@ -5,7 +5,13 @@ import { factory } from "./init";
 
 const discordApp = factory.discord({ verify: verifyKey }).loader(Object.values(handlers));
 
-export default discordApp;
+const app = new Hono<{ Bindings: Env }>();
+
+// Mount it
+app.mount("/interactions", discordApp.fetch);
+app.all("*", (c) => c.redirect(`https://discord.com/discovery/applications/${c.env.DISCORD_APPLICATION_ID}`, 302));
+
+export default app;
 
 // Since the DO is a unique instance per message, we can "delete all" by just setting an alarm to clear the storage after a set time.
 export class DataCache extends DurableObject {
