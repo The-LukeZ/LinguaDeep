@@ -10,7 +10,7 @@ const app = new Hono<{ Bindings: Env }>();
 
 // Mount it
 app.mount("/interactions", discordApp.fetch);
-app.all("*", (c) => c.redirect(`https://discord.com/discovery/applications/${c.env.DISCORD_APPLICATION_ID}`, 302));
+app.all("/", (c) => c.redirect(`https://discord.com/discovery/applications/${c.env.DISCORD_APPLICATION_ID}`, 302));
 
 export default app;
 
