@@ -3,7 +3,7 @@
   "name": "linguadeep",
   "main": "src/index.ts",
   "compatibility_date": "2026-01-03",
-  "compatibility_flags": [ "nodejs_compat" ],
+  "compatibility_flags": ["nodejs_compat"],
   "observability": {
     "enabled": true,
   },
@@ -19,19 +19,21 @@
     },
   ],
   "durable_objects": {
-    "bindings": [ {
+    "bindings": [
+      {
         "name": "DATA_CACHE",
         "class_name": "DataCache",
-      } ]
+      },
+    ],
   },
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": [ "DataCache" ]
-    }
+      "new_sqlite_classes": ["DataCache"],
+    },
   ],
   "upload_source_maps": true,
   "limits": {
-    "cpu_ms": 15000
-  }
+    "cpu_ms": 15000,
+  },
 }
