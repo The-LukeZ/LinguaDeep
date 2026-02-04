@@ -1,40 +1,25 @@
-import { ApplicationCommandType, ApplicationIntegrationType } from "discord-api-types/v10";
-import { Command } from "discord-hono";
-import { factory } from "../init.js";
-import {
-  ackRequest,
-  buildTranslatedMessage,
-  DBHelper,
-  errorResponse,
-  getPreferredTargetLanguage,
-  getUserIdFromInteraction,
-  makeDeeplClient,
-} from "../utils.js";
+import { ApplicationIntegrationType } from "discord-api-types/v10";
+import { buildTranslatedMessage, errorResponse, getPreferredTargetLanguage, getUserIdFromInteraction, makeDeeplClient } from "../utils.js";
+import { ContextCommandHandler, ContextCommandType } from "honocord";
+import { MyContext } from "../types.js";
 
-const command = new Command("Quick Translate")
-  .type(ApplicationCommandType.Message)
-  .integration_types(ApplicationIntegrationType.UserInstall, ApplicationIntegrationType.GuildInstall);
+export const quickTrsCommand = new ContextCommandHandler<MyContext, ContextCommandType.Message>(ContextCommandType.Message)
+  .setIntegrationTypes(ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall)
+  .setName("Quick Translate")
+  .addHandler(async (ctx) => {
+    await ctx.deferReply(true);
 
-export const commandTranslateMessage = factory.command(command, async (c) => {
-  if (c.interaction.data.type !== ApplicationCommandType.Message) return ackRequest(); // Type guard
+    const text = (ctx.targetMessage.content || "").trim();
+    if (!text) return ctx.editReply(errorResponse("The selected message has no content to translate."));
 
-  const message = c.interaction.data.resolved.messages[c.interaction.data.target_id];
+    const userId = getUserIdFromInteraction(ctx);
+    const userCfg = await ctx.context.get("db").getSetting(userId);
+    if (!userCfg?.deeplApiKey) return ctx.editReply(errorResponse("DeepL API key not set. Please set it using `/key set` command."));
 
-  return c.flags("EPHEMERAL").resDefer(async (c) => {
-    const text = (message?.content || "").trim();
-    if (!text) return c.followup(errorResponse("The selected message has no content to translate."));
-
-    c.set("db", new DBHelper(c.env.DB));
-
-    const userId = getUserIdFromInteraction(c.interaction);
-    const userCfg = await c.get("db").getSetting(userId);
-    if (!userCfg?.deeplApiKey) return c.followup(errorResponse("DeepL API key not set. Please set it using `/key set` command."));
-
-    const targetLang = await getPreferredTargetLanguage(userCfg, c.interaction.locale);
+    const targetLang = await getPreferredTargetLanguage(userCfg, ctx.locale || "en");
 
     const deepl = makeDeeplClient(userCfg);
 
     const result = await deepl.translateText(text, null, targetLang);
-    return c.followup(buildTranslatedMessage(result, targetLang));
+    return ctx.editReply(buildTranslatedMessage(result, targetLang));
   });
-});

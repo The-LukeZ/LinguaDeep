@@ -1,6 +1,7 @@
 import { DeepLClient, TextResult, type LanguageCode, type SourceLanguageCode, type TargetLanguageCode } from "deepl-node";
 import { APIInteraction, Locale, MessageFlags } from "discord-api-types/v10";
 import { Cryption, makeCryptor } from "./cryption";
+import { BaseInteraction, Colors, ContainerBuilder } from "honocord";
 
 export type CommonLanguageCode = Exclude<SourceLanguageCode, "en" | "pt">;
 
@@ -115,7 +116,10 @@ export enum DeeplVersion {
 
 interface UserSettings {
   deeplApiKey: string;
-  deeplVersion: DeeplVersion;
+  /**
+   * @deprecated Automatically determined by the API key used. Just kept for backward compatibility.
+   */
+  deeplVersion?: DeeplVersion;
   /**
    * Preferred target language for translations. If null, no preference is set and needs to be derived from the user's locale.
    */
@@ -125,14 +129,16 @@ interface UserSettings {
 export class UserSetting implements UserSettings {
   constructor(
     public readonly deeplApiKey: string,
-    public readonly deeplVersion: DeeplVersion = DeeplVersion.Free,
     public readonly preferredLanguage: TargetLanguageCode | null = null,
   ) {}
 }
 
 type DBUserSettings = {
   deepl_api_key: string;
-  deepl_version: DeeplVersion;
+  /**
+   * @deprecated Automatically determined by the API key used. Just kept for backward compatibility.
+   */
+  deepl_version: DeeplVersion | null;
   preferred_language: TargetLanguageCode | null;
 };
 
@@ -154,11 +160,11 @@ export class DBHelper {
    */
   async getSetting(userId: string): Promise<UserSetting | null> {
     const res = await this.db
-      .prepare("SELECT deepl_api_key, deepl_version, preferred_language FROM settings WHERE user_id = ?")
+      .prepare("SELECT deepl_api_key, preferred_language FROM settings WHERE user_id = ?")
       .bind(userId)
       .first<DBUserSettings>();
     if (!res) return null;
-    return new UserSetting(this.cryptor.decrypt(res.deepl_api_key), res.deepl_version, res.preferred_language);
+    return new UserSetting(this.cryptor.decrypt(res.deepl_api_key), res.preferred_language);
   }
 
   /**
@@ -224,7 +230,7 @@ export const DeeplServerUrls = {
   [DeeplVersion.Pro]: "https://api.deepl.com",
 };
 
-export function getUserIdFromInteraction<T extends APIInteraction>(interaction: T): string {
+export function getUserIdFromInteraction<T extends BaseInteraction<any>>(interaction: T): string {
   return interaction.member ? interaction.member.user.id : interaction.user!.id;
 }
 
@@ -233,7 +239,6 @@ export function makeDeeplClient(userCfg: UserSetting): DeepLClient {
     appInfo: { appName: "LinguaDeep Discord Bot (https://linguadeep.thelukez.com)", appVersion: "0.0.0" },
     maxRetries: 3,
     sendPlatformInfo: true,
-    serverUrl: DeeplServerUrls[userCfg.deeplVersion],
   });
 }
 
@@ -250,11 +255,11 @@ export class Autocomplete {
     return this;
   }
 
-  toJSON(): { choices: { name: string; value: string }[] } {
+  toJSON(): { name: string; value: string }[] {
     const filtered = this._choices.filter(
       (choice) => choice.name.toLowerCase().includes(this._focusedValue) || choice.value.toLowerCase().includes(this._focusedValue),
     );
-    return { choices: filtered.slice(0, 25) }; // Discord only allows max 25 choices
+    return filtered.slice(0, 25); // Discord only allows max 25 choices
   }
 }
 
@@ -298,6 +303,8 @@ export async function getPreferredTargetLanguage(
 export function errorResponse(error: string, withX = true) {
   return {
     flags: V2EphemeralFlag,
-    content: `### ${withX ? "❌ " : ""}${error}`,
-  } as const;
+    components: [
+      new ContainerBuilder().setAccentColor(Colors.Red).addTextDisplayComponents((t) => t.setContent(`${withX ? "❌ " : ""}${error}`)),
+    ],
+  };
 }

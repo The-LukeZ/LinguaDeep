@@ -1,63 +1,55 @@
 import { TargetLanguageCode } from "deepl-node";
 import { ApplicationIntegrationType } from "discord-api-types/v10";
-import { Command, Option, SubCommand } from "discord-hono";
-import { factory } from "../init.js";
 import { ackRequest, AllLanguages, Autocomplete, DBHelper, errorResponse, getUserIdFromInteraction, TargetLanguages } from "../utils.js";
+import { SlashCommandHandler } from "honocord";
+import { MyContext } from "../types.js";
 
-type Var = {
-  language: TargetLanguageCode;
-};
-
-const command = new Command("preferred-language", "Set your preferred target language for translations")
-  .options(
-    new SubCommand("set", "Set your preferred target language").options(
-      new Option("language", "Preferred target language (e.g., en, de, fr)", "String")
-        .required(true)
-        .autocomplete(true)
-        .min_length(2)
-        .max_length(7),
-    ),
-    new SubCommand("clear", "Clear your preferred target language"),
+export const preferredLanguageCommand = new SlashCommandHandler<MyContext>()
+  .setName("preferred-language")
+  .setDescription("Set your preferred target language for translations")
+  .setIntegrationTypes(ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall)
+  .addSubcommand((sub) =>
+    sub
+      .setName("set")
+      .setDescription("Set your preferred target language")
+      .addStringOption((opt) =>
+        opt
+          .setName("language")
+          .setDescription("Preferred target language (e.g., en, de, fr)")
+          .setRequired(true)
+          .setAutocomplete(true)
+          .setMinLength(2)
+          .setMaxLength(7),
+      ),
   )
-  .integration_types(ApplicationIntegrationType.UserInstall);
-
-export const commandPreferredLanguage = factory.autocomplete<Var>(
-  command,
-  (c) => {
-    if (!c.focused) return ackRequest();
-    if (c.focused.name !== "language") return ackRequest(); // Gotta acknowledge the request anyways
-    return c.resAutocomplete(
-      new Autocomplete(c.focused.value as string)
-        .choices(...TargetLanguages.map((code) => ({ name: AllLanguages[code], value: code })))
-        .toJSON(),
+  .addSubcommand((sub) => sub.setName("clear").setDescription("Clear your preferred target language"))
+  .addAutocompleteHandler(async (ctx) => {
+    const option = ctx.options.getFocused();
+    if (!option || option.name !== "language") return ackRequest();
+    return ctx.respond(
+      new Autocomplete(option.value).choices(...TargetLanguages.map((code) => ({ name: AllLanguages[code], value: code }))).toJSON(),
     );
-  },
-  async (c) => {
-    return c.flags("EPHEMERAL").resDefer(async (c) => {
-      c.set("db", new DBHelper(c.env.DB));
-      const userId = getUserIdFromInteraction(c.interaction);
-
-      if (c.sub.string === "clear") {
-        const userCfg = await c.get("db").getSetting(userId);
-        if (!userCfg?.deeplApiKey) {
-          await c.get("db").removeSettings(userId);
-        }
-        await c.get("db").setPreferredLanguage(userId, null);
-        return c.followup("### ✅ Preferred language cleared. Translations will now use your client's language.");
+  })
+  .addHandler(async (ctx) => {
+    await ctx.deferReply(true);
+    const userId = getUserIdFromInteraction(ctx);
+    if (ctx.options.getSubcommand(true) === "clear") {
+      const userCfg = await ctx.context.get("db").getSetting(userId);
+      if (!userCfg?.deeplApiKey) {
+        await ctx.context.get("db").removeSettings(userId);
       }
+      await ctx.context.get("db").setPreferredLanguage(userId, null);
+      return ctx.editReply("### ✅ Preferred language cleared. Translations will now use your client's language.");
+    }
 
-      // Validate target language — must be a supported, non-empty code.
-      const targetCandidate = (c.var.language || "").trim();
-      if (!targetCandidate) {
-        return c.followup(errorResponse("Language is required. Please specify it using the `language` option."));
-      }
-      if (!TargetLanguages.includes(targetCandidate as TargetLanguageCode)) {
-        return c.followup(errorResponse(`Invalid target language: ${targetCandidate}`));
-      }
-      const targetParam = targetCandidate as TargetLanguageCode;
-
-      await c.get("db").setPreferredLanguage(userId, targetParam);
-      return c.followup(`### ✅ Preferred language set to **${AllLanguages[targetParam]} (${targetParam})**.`);
-    });
-  },
-);
+    const targetCandidate = (ctx.options.getString("language", true) || "").trim();
+    if (!targetCandidate) {
+      return ctx.editReply(errorResponse("Language is required. Please specify it using the `language` option."));
+    }
+    if (!TargetLanguages.includes(targetCandidate as TargetLanguageCode)) {
+      return ctx.editReply(`### ⚠️ Invalid target language: ${targetCandidate}`);
+    }
+    const targetParam = targetCandidate as TargetLanguageCode;
+    await ctx.context.get("db").setPreferredLanguage(userId, targetParam);
+    return ctx.editReply(`### ✅ Preferred language set to **${AllLanguages[targetParam]} (${targetParam})**.`);
+  });

@@ -1,7 +1,5 @@
 import { SourceLanguageCode, TargetLanguageCode } from "deepl-node";
-import { ApplicationCommandType, ApplicationIntegrationType, ComponentType, InteractionContextType } from "discord-api-types/v10";
-import { Button, Command, Content, Layout, Select } from "discord-hono";
-import { factory } from "../init.js";
+import { ApplicationCommandType, ApplicationIntegrationType } from "discord-api-types/v10";
 import {
   ackRequest,
   AllLanguages,
@@ -14,12 +12,22 @@ import {
   TargetLanguages,
   V2Flag,
 } from "../utils.js";
+import {
+  ComponentHandler,
+  ContextCommandHandler,
+  ContextCommandType,
+  ComponentType,
+  ContainerBuilder,
+  ButtonBuilder,
+  parseCustomId,
+  StringSelectMenuBuilder,
+  ActionRowBuilder,
+} from "honocord";
+import { MyContext } from "../types.js";
 
-// A special command that only appears in guilds where the app is installed because otherwise we can't fetch a message to translate it.
-
-const command = new Command("Translate (Choose Language)")
-  .type(ApplicationCommandType.Message)
-  .integration_types(ApplicationIntegrationType.UserInstall, ApplicationIntegrationType.GuildInstall);
+export const trsMsgCommand = new ContextCommandHandler<MyContext, ContextCommandType.Message>(ContextCommandType.Message)
+  .setName("Translate (Choose Language)")
+  .setIntegrationTypes(ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall);
 
 // Chunks of 25 languages for select menu options
 const targetLanguageChunks = TargetLanguages.sort().reduce<TargetLanguageCode[][]>((chunks, lang) => {
@@ -38,208 +46,199 @@ const sourceLanguageChunks = SourceLanguages.sort().reduce<SourceLanguageCode[][
 }, []);
 
 function extractDataFromSelectCustomId(customId: string) {
-  const parsed = JSON.parse(customId) as [string, string | undefined, number | undefined];
+  const { compPath, firstParam } = parseCustomId(customId) as { compPath: string[]; firstParam?: string };
   return {
-    messageId: parsed[0],
-    sourceOrTarget: parsed[1],
-    chunkIndex: parsed[2],
+    messageId: compPath[1],
+    sourceOrTarget: compPath[2],
+    chunkIndex: firstParam ? parseInt(firstParam, 10) : 0,
   };
 }
 
-export const componentTargetLanguageSelect = factory.component(
-  new Select("translate_message_guild_target", "String").placeholder("Select a target language"),
-  async (c) => {
-    if (c.interaction.data.component_type !== ComponentType.StringSelect) return ackRequest(); // Type guard
+export const targetLSelect = new ComponentHandler<MyContext, ComponentType.StringSelect>(
+  "messageGuildTarget",
+  ComponentType.StringSelect,
+).addHandler(async (ctx) => {
+  const val = ctx.values[0];
+  const data = extractDataFromSelectCustomId(ctx.customId);
+  const updated = createLanguageSelectMessage(data.messageId, data.sourceOrTarget, val);
+  await ctx.update(updated);
+});
 
-    const values = c.interaction.data.values;
-    const val = values.length ? values[0] : undefined;
-    const data = extractDataFromSelectCustomId(c.var.custom_id!);
-    const updated = createLanguageSelectMessage(data.messageId, data.sourceOrTarget, val);
-    return c.update().res(updated);
-  },
-);
+export const sourceLSelect = new ComponentHandler<MyContext, ComponentType.StringSelect>(
+  "messageGuildSource",
+  ComponentType.StringSelect,
+).addHandler(async (ctx) => {
+  const val = ctx.values[0];
+  const data = extractDataFromSelectCustomId(ctx.customId);
+  const updated = createLanguageSelectMessage(data.messageId, val, data.sourceOrTarget);
+  await ctx.update(updated);
+});
 
-export const componentSourceLanguageSelect = factory.component(
-  new Select("translate_message_guild_source", "String").placeholder("Select a source language"),
-  async (c) => {
-    if (c.interaction.data.component_type !== ComponentType.StringSelect) return ackRequest(); // Type guard
+export const componentClearTargetLanguage = new ComponentHandler<MyContext, ComponentType.Button>(
+  "messageGuildTargetClear",
+  ComponentType.Button,
+).addHandler(async (ctx) => {
+  const data = extractDataFromSelectCustomId(ctx.customId);
+  const updated = createLanguageSelectMessage(data.messageId, data.sourceOrTarget, undefined);
+  await ctx.update(updated);
+});
 
-    const values = c.interaction.data.values;
-    const val = values.length ? values[0] : undefined;
-    const data = extractDataFromSelectCustomId(c.var.custom_id!);
-    const updated = createLanguageSelectMessage(data.messageId, val, data.sourceOrTarget);
-    return c.update().res(updated);
-  },
-);
-
-export const componentClearTargetLanguage = factory.component(
-  new Button("translate_message_guild_target_clear", ["❌", "Clear Target Language"], "Secondary"),
-  async (c) => {
-    const data = extractDataFromSelectCustomId(c.var.custom_id!);
-    const updated = createLanguageSelectMessage(data.messageId, data.sourceOrTarget, undefined);
-    return c.update().res(updated);
-  },
-);
-
-export const componentClearSourceLanguage = factory.component(
-  new Button("translate_message_guild_source_clear", ["❌", "Clear Source Language"], "Secondary"),
-  async (c) => {
-    const data = extractDataFromSelectCustomId(c.var.custom_id!);
-    const updated = createLanguageSelectMessage(data.messageId, undefined, data.sourceOrTarget);
-    return c.update().res(updated);
-  },
-);
+export const componentClearSourceLanguage = new ComponentHandler<MyContext, ComponentType.Button>(
+  "messageGuildSourceClear",
+  ComponentType.Button,
+).addHandler(async (ctx) => {
+  const data = extractDataFromSelectCustomId(ctx.customId);
+  const updated = createLanguageSelectMessage(data.messageId, undefined, data.sourceOrTarget);
+  await ctx.update(updated);
+});
 
 function createLanguageSelectMessage(messageId: string, selectedSource?: string, selectedTarget?: string) {
-  const container = new Layout("Container").accent_color(0x5865f2);
-  const containerComps = [] as any[];
+  const container = new ContainerBuilder().setAccentColor(0x5865f2);
 
   if (selectedTarget) {
-    containerComps.push(
-      new Layout("Section")
-        .components(new Content(`### Selected target language: **${AllLanguages[selectedTarget as TargetLanguageCode]}**`))
-        .accessory(componentClearTargetLanguage.component.custom_id(JSON.stringify([messageId, selectedSource])).toJSON()),
+    container.addSectionComponents((sec) =>
+      sec
+        .addTextDisplayComponents((t) =>
+          t.setContent(`### Selected target language: **${AllLanguages[selectedTarget as TargetLanguageCode]}**`),
+        )
+        .setButtonAccessory(new ButtonBuilder().setCustomId(`asd?${messageId}/${selectedSource}`)),
     );
   } else {
-    containerComps.push(
-      new Content("### Select target language:"),
-      ...targetLanguageChunks.map((chunk, index) => ({
-        type: 1,
-        components: [
-          componentTargetLanguageSelect.component
-            .custom_id(JSON.stringify([messageId, selectedSource, index]))
-            .options(
+    container
+      .addTextDisplayComponents((t) => t.setContent("### Select target language:"))
+      .addActionRowComponents(
+        ...targetLanguageChunks.map((chunk, index) =>
+          new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
+            new StringSelectMenuBuilder().setCustomId(`messageGuildTarget/${messageId}/${selectedSource}?${index}`).setOptions(
               ...chunk.map((lang) => ({
                 label: AllLanguages[lang],
                 value: lang,
                 default: !!(selectedTarget && selectedTarget === lang),
               })),
-            )
-            .toJSON(),
-        ],
-      })),
-    );
+            ),
+          ),
+        ),
+      );
   }
-  containerComps.push(new Layout("Separator").divider(true));
+  container.addSeparatorComponents((s) => s);
 
   if (selectedSource) {
-    containerComps.push(
-      new Layout("Section")
-        .components(new Content(`### Selected source language: **${AllLanguages[selectedSource as SourceLanguageCode]}**`))
-        .accessory(componentClearSourceLanguage.component.custom_id(JSON.stringify([messageId, selectedTarget])).toJSON()),
+    container.addSectionComponents((sec) =>
+      sec
+        .addTextDisplayComponents((t) =>
+          t.setContent(`### Selected source language: **${AllLanguages[selectedSource as SourceLanguageCode]}**`),
+        )
+        .setButtonAccessory(new ButtonBuilder().setCustomId(`messageGuildSourceClear/${messageId}/${selectedTarget}`)),
     );
   } else {
-    containerComps.push(
-      new Content("### (Optional) Select source language:"),
-      ...sourceLanguageChunks.map((chunk, index) => ({
-        type: 1,
-        components: [
-          componentSourceLanguageSelect.component
-            .custom_id(JSON.stringify([messageId, selectedTarget, index]))
-            .options(
+    container
+      .addTextDisplayComponents((t) => t.setContent("### (Optional) Select source language:"))
+      .addActionRowComponents(
+        ...sourceLanguageChunks.map((chunk, index) =>
+          new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
+            new StringSelectMenuBuilder().setCustomId(`messageGuildSource/${messageId}/${selectedTarget}?${index}`).setOptions(
               ...chunk.map((lang) => ({
                 label: AllLanguages[lang],
                 value: lang,
                 default: !!(selectedSource && selectedSource === lang),
               })),
-            )
-            .toJSON(),
-        ],
-      })),
-    );
+            ),
+          ),
+        ),
+      );
   }
 
-  containerComps.push(new Layout("Separator").spacing(2).divider(false));
-  containerComps.push({
-    type: 1,
-    components: [
-      new Button("translate_message_confirm", selectedTarget ? "Translate" : "Select a target language", "Success")
-        .disabled(!selectedTarget)
-        .custom_id([messageId, selectedTarget, selectedSource].filter(Boolean).join("/"))
-        .toJSON(),
-    ],
-  });
-
-  const comps = [container.components(...containerComps).toJSON()];
+  container.addSeparatorComponents((s) => s);
+  container.addActionRowComponents(
+    new ActionRowBuilder<ButtonBuilder>().setComponents(
+      new ButtonBuilder()
+        .setLabel(selectedTarget ? "Translate" : "Select a target language")
+        .setStyle(3)
+        .setDisabled(!selectedTarget)
+        .setCustomId(`translate_message_confirm/${messageId}/${selectedTarget || ""}/${selectedSource || ""}`),
+    ),
+  );
 
   return {
     flags: V2Flag,
-    components: comps,
+    components: [container],
   };
 }
 
-// Confirm button - uses resDefer to show loading state, then followup with result
-export const componentTranslateMessageConfirm = factory.component(new Button("translate_message_confirm", ""), async (c) => {
-  const channelId = c.interaction.channel.id;
-  const [messageId, target, source] = c.var.custom_id!.split("/");
+export const componentTrsMessageConfirm = new ComponentHandler<MyContext, ComponentType.Button>(
+  "translate_message_confirm",
+  ComponentType.Button,
+).addHandler(async (ctx) => {
+  const channelId = ctx.channel!.id;
+  const [messageId, target, source] = ctx.customId.split("/");
 
   if (!target) {
-    return c.res(errorResponse("Please select a target language before confirming."));
+    return ctx.reply(errorResponse("Please select a target language before confirming."));
   }
 
-  // Use resDefer without IS_COMPONENTS_V2 flag, only EPHEMERAL
-  return c.flags("EPHEMERAL").resDefer(async (c) => {
-    // Retrieve the message text from the DataCache durable object (cached when the command was run)
-    const key = `${channelId}:${messageId}`;
-    const id: DurableObjectId = c.env.DATA_CACHE.idFromName(key);
-    const stub = c.env.DATA_CACHE.get(id);
-    const cachedText = await stub.getData(key);
-    
-    if (!cachedText) {
-      return c.followup(
-        errorResponse(
-          "⚠️ The cached message has expired.\nPlease run the **Translate Message** command on the message again to recreate the cache and try again.",
-          false,
-        ),
-      );
-    }
+  await ctx.deferReply(true);
 
-    const text = cachedText.trim();
-    if (!text) return c.followup(errorResponse("The selected message has no content to translate."));
+  // Retrieve the message text from the DataCache durable object (cached when the command was run)
+  const key = `${channelId}:${messageId}`;
+  const id: DurableObjectId = ctx.context.env.DATA_CACHE.idFromName(key);
+  const stub = ctx.context.env.DATA_CACHE.get(id);
+  const cachedText = await stub.getData(key);
 
-    // Translation setup
-    c.set("db", new DBHelper(c.env.DB));
-    const userId = getUserIdFromInteraction(c.interaction);
-    const userCfg = await c.get("db").getSetting(userId);
-    
-    if (!userCfg?.deeplApiKey) {
-      return c.followup(errorResponse("DeepL API key not set. Please set it using `/key set` command."));
-    }
+  if (!cachedText) {
+    return ctx.editReply(
+      errorResponse(
+        "⚠️ The cached message has expired.\nPlease run the **Translate Message** command on the message again to recreate the cache and try again.",
+        false,
+      ),
+    );
+  }
 
-    const deepl = makeDeeplClient(userCfg);
+  const text = cachedText.trim();
+  if (!text) return ctx.editReply(errorResponse("The selected message has no content to translate."));
 
-    const sourceParam: SourceLanguageCode | null =
-      source && SourceLanguages.includes(source as SourceLanguageCode) ? (source as SourceLanguageCode) : null;
-    const targetParam = target as TargetLanguageCode;
+  const db = new DBHelper(ctx.context.env.DB);
+  const userId = getUserIdFromInteraction(ctx);
+  const userCfg = await db.getSetting(userId);
 
-    const result = await deepl.translateText(text, sourceParam || null, targetParam);
+  if (!userCfg?.deeplApiKey) {
+    return ctx.editReply(errorResponse("DeepL API key not set. Please set it using `/key set` command."));
+  }
 
-    // Reply with translated embed as a follow-up (ephemeral to the user)
-    return c.followup(buildTranslatedMessage(result, targetParam));
-  });
+  const deepl = makeDeeplClient(userCfg);
+
+  const sourceParam: SourceLanguageCode | null =
+    source && SourceLanguages.includes(source as SourceLanguageCode) ? (source as SourceLanguageCode) : null;
+  const targetParam = target as TargetLanguageCode;
+
+  const result = await deepl.translateText(text, sourceParam || null, targetParam);
+
+  return ctx.editReply(buildTranslatedMessage(result, targetParam));
 });
 
-export const commandTranslateMessageGuild = factory.command(command, (c) =>
-  c.flags("EPHEMERAL", "IS_COMPONENTS_V2").resDefer(async (c) => {
-    if (c.interaction.data.type !== ApplicationCommandType.Message) return ackRequest(); // Type guard
-    const message = c.interaction.data.resolved.messages[c.interaction.data.target_id];
-    const text = (message?.content || "").trim();
+export const trsMessageCommand = new ContextCommandHandler<MyContext, ContextCommandType.Message>(ContextCommandType.Message)
+  .setName("Translate (Choose Language)")
+  .setIntegrationTypes(ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall)
+  .addHandler(async (ctx) => {
+    if (!ctx.channel) {
+      return ctx.reply(errorResponse("This command can only be used in a guild channel."));
+    }
+    const channelId = ctx.channel.id;
+    const messageId = ctx.targetMessage.id;
+    const text = (ctx.targetMessage.content || "").trim();
     if (!text) {
-      return c.followup(errorResponse("The selected message has no content to translate."));
+      return ctx.editReply(errorResponse("The selected message has no content to translate."));
     }
 
-    const channelId = c.interaction.channel.id;
-    const messageId = message.id;
-
-    const id: DurableObjectId = c.env.DATA_CACHE.idFromName(`${channelId}:${messageId}`);
-    await c.env.DATA_CACHE.get(id).setData(`${channelId}:${messageId}`, text);
+    const key = `${channelId}:${messageId}`;
+    const id: DurableObjectId = ctx.context.env.DATA_CACHE.idFromName(key);
+    const stub = ctx.context.env.DATA_CACHE.get(id);
+    await stub.setData(key, text);
 
     try {
       const res = createLanguageSelectMessage(messageId);
-      await c.followup(res).then(() => console.log("Language select message sent."));
+      await ctx.editReply(res);
     } catch (err) {
       console.error("Error creating language select message:", err);
-      await c.followup(errorResponse("An error occurred while preparing the language selection. Please try again later."));
+      await ctx.editReply(errorResponse("An error occurred while preparing the language selection. Please try again later."));
     }
-  }),
-);
+  });

@@ -1,15 +1,20 @@
 import { DurableObject } from "cloudflare:workers";
-import { verifyKey } from "./discordVerify";
 import * as handlers from "./handlers/index.js";
-import { factory } from "./init";
 import { Hono } from "hono";
+import { Honocord } from "honocord";
+import { MyContext } from "./types";
+import { DBHelper } from "./utils";
 
-const discordApp = factory.discord({ verify: verifyKey }).loader(Object.values(handlers));
+const bot = new Honocord({ isCFWorker: true }).use<MyContext>((c, next) => {
+  c.set("db", new DBHelper(c.env.DB));
+  next();
+});
+bot.loadHandlers(Object.values(handlers));
 
 const app = new Hono<{ Bindings: Env }>();
 
 // Mount it
-app.mount("/interactions", discordApp.fetch);
+app.post("/interactions", bot.handle);
 app.all("/", (c) => c.redirect(`https://discord.com/discovery/applications/${c.env.DISCORD_APPLICATION_ID}`, 302));
 
 export default app;

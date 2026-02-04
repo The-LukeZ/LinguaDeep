@@ -1,16 +1,13 @@
-import { Command } from "discord-hono";
-import { factory } from "../init.js";
 import { EphemeralFlag } from "../utils.js";
 import { ApplicationIntegrationType } from "discord-api-types/payloads/v10";
-import { ActionRowBuilder, ButtonBuilder } from "@discordjs/builders";
+import { SlashCommandHandler, ActionRowBuilder, ButtonBuilder } from "honocord";
 
-export const commandHelp = factory.command(
-  new Command("help", "Get help with using the bot").integration_types(
-    ApplicationIntegrationType.GuildInstall,
-    ApplicationIntegrationType.UserInstall,
-  ),
-  (c) =>
-    c.res({
+export const helpCommand = new SlashCommandHandler()
+  .setName("help")
+  .setDescription("Get help with using the bot")
+  .setIntegrationTypes(ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall)
+  .addHandler(async (ctx) => {
+    return ctx.reply({
       content: [
         "### 🤖 LinguaDeep",
         "- Use `/translate` to translate text using DeepL API.",
@@ -28,5 +25,5 @@ export const commandHelp = factory.command(
           .toJSON(),
       ],
       flags: EphemeralFlag,
-    }),
-);
+    });
+  });
