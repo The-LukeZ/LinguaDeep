@@ -135,10 +135,6 @@ export class UserSetting implements UserSettings {
 
 type DBUserSettings = {
   deepl_api_key: string;
-  /**
-   * @deprecated Automatically determined by the API key used. Just kept for backward compatibility.
-   */
-  deepl_version: DeeplVersion | null;
   preferred_language: TargetLanguageCode | null;
 };
 
@@ -180,9 +176,9 @@ export class DBHelper {
     const valueStr = JSON.stringify(this.cryptor.encrypt(apiKey));
     await this.db
       .prepare(
-        "INSERT INTO settings (user_id, deepl_api_key, deepl_version) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET deepl_api_key = excluded.deepl_api_key, deepl_version = excluded.deepl_version",
+        "INSERT INTO settings (user_id, deepl_api_key) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET deepl_api_key = excluded.deepl_api_key",
       )
-      .bind(userId, valueStr, deeplVersion)
+      .bind(userId, valueStr)
       .run();
   }
 
@@ -192,7 +188,7 @@ export class DBHelper {
    * @returns A promise that resolves when the operation is complete
    */
   async unsetKeyData(userId: string): Promise<void> {
-    await this.db.prepare("UPDATE settings SET deepl_api_key = NULL, deepl_version = NULL WHERE user_id = ?").bind(userId).run();
+    await this.db.prepare("UPDATE settings SET deepl_api_key = NULL WHERE user_id = ?").bind(userId).run();
   }
 
   /**
