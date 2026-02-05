@@ -1,7 +1,6 @@
 import { SourceLanguageCode, TargetLanguageCode } from "deepl-node";
-import { ApplicationCommandType, ApplicationIntegrationType } from "discord-api-types/v10";
+import { ApplicationIntegrationType } from "discord-api-types/v10";
 import {
-  ackRequest,
   AllLanguages,
   buildTranslatedMessage,
   DBHelper,
