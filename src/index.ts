@@ -5,9 +5,9 @@ import { Honocord } from "honocord";
 import { MyContext } from "./types";
 import { DBHelper } from "./utils";
 
-const bot = new Honocord({ isCFWorker: true }).use<MyContext>((c, next) => {
+const bot = new Honocord({ isCFWorker: true, debugRest: true }).use<MyContext>((c, next) => {
   c.set("db", new DBHelper(c.env.DB));
-  next();
+  return next();
 });
 bot.loadHandlers(Object.values(handlers));
 
