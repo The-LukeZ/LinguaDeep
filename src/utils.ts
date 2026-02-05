@@ -109,17 +109,8 @@ export const V2EphemeralFlag = EphemeralFlag | V2Flag;
 
 export const ackRequest = () => new Response(null, { status: 204 });
 
-export enum DeeplVersion {
-  Free = 1,
-  Pro = 2,
-}
-
 interface UserSettings {
   deeplApiKey: string;
-  /**
-   * @deprecated Automatically determined by the API key used. Just kept for backward compatibility.
-   */
-  deeplVersion?: DeeplVersion;
   /**
    * Preferred target language for translations. If null, no preference is set and needs to be derived from the user's locale.
    */
@@ -168,11 +159,10 @@ export class DBHelper {
    *
    * @param userId - The unique identifier of the user
    * @param apiKey - The DeepL API key to be encrypted and stored
-   * @param deeplVersion - The DeepL API version to use (defaults to Free tier)
    * @returns A promise that resolves when the key data has been successfully stored
    * @throws May throw an error if the database operation fails
    */
-  async setKeyData(userId: string, apiKey: string, deeplVersion: DeeplVersion = DeeplVersion.Free): Promise<void> {
+  async setKeyData(userId: string, apiKey: string): Promise<void> {
     const valueStr = JSON.stringify(this.cryptor.encrypt(apiKey));
     await this.db
       .prepare(
@@ -220,11 +210,6 @@ export class DBHelper {
     await this.db.prepare("DELETE FROM settings WHERE user_id = ?").bind(userId).run();
   }
 }
-
-export const DeeplServerUrls = {
-  [DeeplVersion.Free]: "https://api-free.deepl.com",
-  [DeeplVersion.Pro]: "https://api.deepl.com",
-};
 
 export function getUserIdFromInteraction<T extends BaseInteraction<any>>(interaction: T): string {
   return interaction.member ? interaction.member.user.id : interaction.user!.id;

@@ -28,7 +28,7 @@
     "deepl-node": "^1.24.0",
     "discord-api-types": "^0.38.37",
     "hono": "^4.11.7",
-    "honocord": "^1.4.4"
+    "honocord": "^1.4.5"
   },
   "packageManager": "pnpm@10.28.2",
   "engines": {
