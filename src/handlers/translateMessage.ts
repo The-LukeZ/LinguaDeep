@@ -6,7 +6,6 @@ import {
   DBHelper,
   errorResponse,
   getUserIdFromInteraction,
-  makeDeeplClient,
   SourceLanguages,
   TargetLanguages,
   V2Flag,
@@ -23,6 +22,8 @@ import {
   ActionRowBuilder,
 } from "honocord";
 import { MyContext } from "../types.js";
+import { Translator } from "../translator.js";
+import { codeBlock } from "@discordjs/formatters";
 
 export const trsMsgCommand = new ContextCommandHandler<MyContext, ContextCommandType.Message>(ContextCommandType.Message)
   .setName("Translate (Choose Language)")
@@ -203,14 +204,16 @@ export const componentTrsMessageConfirm = new ComponentHandler<MyContext, Compon
     return ctx.editReply(errorResponse("DeepL API key not set. Please set it using `/key set` command."));
   }
 
-  const deepl = makeDeeplClient(userCfg);
+  const deepl = new Translator(userCfg.deeplApiKey);
 
   const sourceParam: SourceLanguageCode | null =
     source && SourceLanguages.includes(source as SourceLanguageCode) ? (source as SourceLanguageCode) : null;
   const targetParam = target as TargetLanguageCode;
 
-  const result = await deepl.translateText(text, sourceParam || null, targetParam);
-
+  const result = await deepl.translate(text, targetParam, sourceParam || null);
+  if ("error" in result) {
+    return ctx.editReply(errorResponse(`### Translation failed\n${codeBlock(result.error)}`, false));
+  }
   return ctx.editReply(buildTranslatedMessage(result, targetParam));
 });
 

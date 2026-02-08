@@ -4,30 +4,16 @@ import {
   AllLanguages,
   Autocomplete,
   buildTranslatedMessage,
-  DBHelper,
   errorResponse,
   getPreferredTargetLanguage,
   getUserIdFromInteraction,
-  makeDeeplClient,
   SourceLanguages,
   TargetLanguages,
 } from "../utils.js";
 import { SlashCommandHandler } from "honocord";
 import { MyContext } from "../types.js";
-
-type Var = {
-  text: string;
-  target_lang?: TargetLanguageCode;
-  source_lang?: SourceLanguageCode;
-};
-
-// const command = new Command("translate", "Translate text using DeepL").options(
-//   new Option("text", "Text to translate", "String").required(true),
-//   new Option("target_lang", "Target language (e.g., en, de, fr) | Defaults to your client's language", "String")
-//     .required(false)
-//     .autocomplete(true),
-//   new Option("source_lang", "Source language (e.g., en, de, fr) | Auto-detected if not provided", "String").autocomplete(true),
-// );
+import { Translator } from "../translator.js";
+import { codeBlock } from "@discordjs/formatters";
 
 export const trsCommand = new SlashCommandHandler<MyContext>()
   .setName("translate")
@@ -85,8 +71,11 @@ export const trsCommand = new SlashCommandHandler<MyContext>()
 
     if (!userCfg?.deeplApiKey) return ctx.editReply(errorResponse("DeepL API key not set. Please set it using `/key set` command."));
 
-    const deepl = makeDeeplClient(userCfg);
+    const deepl = new Translator(userCfg.deeplApiKey);
 
-    const result = await deepl.translateText(text, sourceParam || null, targetParam);
+    const result = await deepl.translate(text, targetParam, sourceParam || null);
+    if ("error" in result) {
+      return ctx.editReply(errorResponse(`### Translation failed\n${codeBlock(result.error)}`, false));
+    }
     return ctx.editReply(buildTranslatedMessage(result, targetParam));
   });

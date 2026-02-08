@@ -215,14 +215,6 @@ export function getUserIdFromInteraction<T extends BaseInteraction<any>>(interac
   return interaction.member ? interaction.member.user.id : interaction.user!.id;
 }
 
-export function makeDeeplClient(userCfg: UserSetting): DeepLClient {
-  return new DeepLClient(userCfg.deeplApiKey, {
-    appInfo: { appName: "LinguaDeep Discord Bot (https://linguadeep.thelukez.com)", appVersion: "0.0.0" },
-    maxRetries: 3,
-    sendPlatformInfo: true,
-  });
-}
-
 export class Autocomplete {
   private _choices: { name: string; value: string }[] = [];
   private _focusedValue: string;

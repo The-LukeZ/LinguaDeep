@@ -1,7 +1,9 @@
 import { ApplicationIntegrationType } from "discord-api-types/v10";
-import { buildTranslatedMessage, errorResponse, getPreferredTargetLanguage, getUserIdFromInteraction, makeDeeplClient } from "../utils.js";
+import { buildTranslatedMessage, errorResponse, getPreferredTargetLanguage, getUserIdFromInteraction } from "../utils.js";
 import { ContextCommandHandler, ContextCommandType } from "honocord";
 import { MyContext } from "../types.js";
+import { Translator } from "../translator.js";
+import { codeBlock } from "@discordjs/formatters";
 
 export const quickTrsCommand = new ContextCommandHandler<MyContext, ContextCommandType.Message>(ContextCommandType.Message)
   .setIntegrationTypes(ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall)
@@ -18,8 +20,11 @@ export const quickTrsCommand = new ContextCommandHandler<MyContext, ContextComma
 
     const targetLang = await getPreferredTargetLanguage(userCfg, ctx.locale || "en");
 
-    const deepl = makeDeeplClient(userCfg);
+    const deepl = new Translator(userCfg.deeplApiKey);
 
-    const result = await deepl.translateText(text, null, targetLang);
+    const result = await deepl.translate(text, targetLang);
+    if ("error" in result) {
+      return ctx.editReply(errorResponse(`### Translation failed\n${codeBlock(result.error)}`, false));
+    }
     return ctx.editReply(buildTranslatedMessage(result, targetLang));
   });

@@ -1,8 +1,9 @@
 import { codeBlock, inlineCode, spoiler } from "@discordjs/formatters";
-import { EphemeralFlag, makeDeeplClient, UserSetting } from "../utils.js";
+import { EphemeralFlag, errorResponse, UserSetting } from "../utils.js";
 import { ApplicationIntegrationType } from "discord-api-types/v10";
 import { SlashCommandHandler } from "honocord";
 import { MyContext } from "../types.js";
+import { Translator } from "../translator.js";
 
 export const keyCommand = new SlashCommandHandler<MyContext>()
   .setName("key")
@@ -40,8 +41,11 @@ export const keyCommand = new SlashCommandHandler<MyContext>()
       return;
     }
     await ctx.deferReply(true);
-    const deepl = makeDeeplClient(cfg);
+    const deepl = new Translator(cfg.deeplApiKey);
     const usage = await deepl.getUsage();
+    if ("error" in usage) {
+      return ctx.editReply(errorResponse(`### Failed to retrieve usage information\n${codeBlock(usage.error)}`, false));
+    }
     const percentUsed = usage.character && usage.character.limit ? ((usage.character.count / usage.character.limit) * 100).toFixed(2) : "0";
     return ctx.editReply({
       embeds: [
