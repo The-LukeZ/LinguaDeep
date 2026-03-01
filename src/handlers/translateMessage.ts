@@ -180,7 +180,7 @@ export const componentTrsMessageConfirm = new ComponentHandler<MyContext, Compon
 
   // Retrieve the message text from the DataCache durable object (cached when the command was run)
   const key = `${channelId}:${messageId}`;
-  const id: DurableObjectId = ctx.context.env.DATA_CACHE.idFromName(key);
+  const id = ctx.context.env.DATA_CACHE.idFromName(key);
   const stub = ctx.context.env.DATA_CACHE.get(id);
   const cachedText = await stub.getData(key);
 
@@ -232,7 +232,7 @@ export const trsMessageCommand = new ContextCommandHandler<MyContext, ContextCom
     }
 
     const key = `${channelId}:${messageId}`;
-    const id: DurableObjectId = ctx.context.env.DATA_CACHE.idFromName(key);
+    const id = ctx.context.env.DATA_CACHE.idFromName(key);
     const stub = ctx.context.env.DATA_CACHE.get(id);
     await stub.setData(key, text);
 
