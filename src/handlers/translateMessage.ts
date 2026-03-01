@@ -25,11 +25,6 @@ import { MyContext } from "../types.js";
 import { Translator } from "../translator.js";
 import { codeBlock } from "@discordjs/formatters";
 
-export const trsMsgCommand = new ContextCommandHandler<MyContext, ContextCommandType.Message>(ContextCommandType.Message)
-  .setName("Translate (Choose Language)")
-  .setIntegrationTypes(ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall);
-
-// Chunks of 25 languages for select menu options
 const targetLanguageChunks = TargetLanguages.sort().reduce<TargetLanguageCode[][]>((chunks, lang) => {
   if (chunks.length === 0 || chunks[chunks.length - 1].length === 25) {
     chunks.push([]);
@@ -101,7 +96,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
         .addTextDisplayComponents((t) =>
           t.setContent(`### Selected target language: **${AllLanguages[selectedTarget as TargetLanguageCode]}**`),
         )
-        .setButtonAccessory(new ButtonBuilder().setCustomId(`asd?${messageId}/${selectedSource}`)),
+        .setButtonAccessory(new ButtonBuilder().setCustomId(`messageGuildTargetClear/${messageId}/${selectedSource}`)),
     );
   } else {
     container
@@ -170,7 +165,8 @@ export const componentTrsMessageConfirm = new ComponentHandler<MyContext, Compon
   ComponentType.Button,
 ).addHandler(async (ctx) => {
   const channelId = ctx.channel!.id;
-  const [messageId, target, source] = ctx.customId.split("/");
+  const { compPath } = parseCustomId(ctx.customId) as { compPath: string[] };
+  const [_, messageId, target, source] = compPath;
 
   if (!target) {
     return ctx.reply(errorResponse("Please select a target language before confirming."));
