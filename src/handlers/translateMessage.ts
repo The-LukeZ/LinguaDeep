@@ -224,8 +224,10 @@ export const trsMessageCommand = new ContextCommandHandler<MyContext, ContextCom
     const messageId = ctx.targetMessage.id;
     const text = (ctx.targetMessage.content || "").trim();
     if (!text) {
-      return ctx.editReply(errorResponse("The selected message has no content to translate."));
+      return ctx.reply(errorResponse("The selected message has no content to translate."));
     }
+
+    await ctx.deferReply(true);
 
     const key = `${channelId}:${messageId}`;
     const id = ctx.context.env.DATA_CACHE.idFromName(key);
