@@ -96,7 +96,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
         .addTextDisplayComponents((t) =>
           t.setContent(`### Selected target language: **${AllLanguages[selectedTarget as TargetLanguageCode]}**`),
         )
-        .setButtonAccessory(new ButtonBuilder().setCustomId(`messageGuildTargetClear/${messageId}/${selectedSource}`).setLabel("Clear")),
+        .setButtonAccessory(new ButtonBuilder().setCustomId(`messageGuildTargetClear/${messageId}/${selectedSource}`).setLabel("Clear").setStyle(4)),
     );
   } else {
     container
@@ -123,7 +123,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
         .addTextDisplayComponents((t) =>
           t.setContent(`### Selected source language: **${AllLanguages[selectedSource as SourceLanguageCode]}**`),
         )
-        .setButtonAccessory(new ButtonBuilder().setCustomId(`messageGuildSourceClear/${messageId}/${selectedTarget}`).setLabel("Clear")),
+        .setButtonAccessory(new ButtonBuilder().setCustomId(`messageGuildSourceClear/${messageId}/${selectedTarget}`).setLabel("Clear").setStyle(4)),
     );
   } else {
     container
