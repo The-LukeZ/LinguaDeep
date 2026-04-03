@@ -240,13 +240,14 @@ export class Autocomplete {
 
 export function buildTranslatedMessage(deeplResponse: TextResult, targetLang: TargetLanguageCode): InteractionResponseCallbackData {
   return {
-    content: "-# _Not 100% of languages supported by DeepL are available in this bot. If you want to see your language supported, [please let me know](https://discord.gg/x8sC8MpeYX)!_",
+    content:
+      "-# _Not 100% of languages supported by [DeepL](https://www.deepl.com) are available in this bot. If you want to see your language supported, [please let me know](https://discord.gg/x8sC8MpeYX)!_",
     embeds: [
       {
         author: {
           name: `🌐 From ${AllLanguages[deeplResponse.detectedSourceLang]} to ${AllLanguages[targetLang]}`,
         },
-        description: deeplResponse.text + "\n\n-# Powered by [DeepL](https://www.deepl.com)",
+        description: "_ _\n" + deeplResponse.text + "\n_ _",
         footer: {
           text: `Billed: ${deeplResponse.billedCharacters} characters`,
         },
