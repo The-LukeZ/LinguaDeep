@@ -55,7 +55,8 @@ export const targetLSelect = new ComponentHandler<MyContext, ComponentType.Strin
 ).addHandler(async (ctx) => {
   const val = ctx.values[0];
   const data = extractDataFromSelectCustomId(ctx.customId);
-  const updated = createLanguageSelectMessage(data.messageId, data.sourceOrTarget, val);
+  const source = data.sourceOrTarget || undefined;
+  const updated = createLanguageSelectMessage(data.messageId, source, val);
   await ctx.update(updated);
 });
 
@@ -65,7 +66,8 @@ export const sourceLSelect = new ComponentHandler<MyContext, ComponentType.Strin
 ).addHandler(async (ctx) => {
   const val = ctx.values[0];
   const data = extractDataFromSelectCustomId(ctx.customId);
-  const updated = createLanguageSelectMessage(data.messageId, val, data.sourceOrTarget);
+  const target = data.sourceOrTarget || undefined;
+  const updated = createLanguageSelectMessage(data.messageId, val, target);
   await ctx.update(updated);
 });
 
@@ -74,7 +76,8 @@ export const componentClearTargetLanguage = new ComponentHandler<MyContext, Comp
   ComponentType.Button,
 ).addHandler(async (ctx) => {
   const data = extractDataFromSelectCustomId(ctx.customId);
-  const updated = createLanguageSelectMessage(data.messageId, data.sourceOrTarget, undefined);
+  const source = data.sourceOrTarget || undefined;
+  const updated = createLanguageSelectMessage(data.messageId, source, undefined);
   await ctx.update(updated);
 });
 
@@ -83,7 +86,8 @@ export const componentClearSourceLanguage = new ComponentHandler<MyContext, Comp
   ComponentType.Button,
 ).addHandler(async (ctx) => {
   const data = extractDataFromSelectCustomId(ctx.customId);
-  const updated = createLanguageSelectMessage(data.messageId, undefined, data.sourceOrTarget);
+  const target = data.sourceOrTarget || undefined;
+  const updated = createLanguageSelectMessage(data.messageId, undefined, target);
   await ctx.update(updated);
 });
 
@@ -97,7 +101,10 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
           t.setContent(`### Selected target language: **${AllLanguages[selectedTarget as TargetLanguageCode]}**`),
         )
         .setButtonAccessory(
-          new ButtonBuilder().setCustomId(`messageGuildTargetClear/${messageId}/${selectedSource}`).setLabel("Clear").setStyle(4),
+          new ButtonBuilder()
+            .setCustomId(`messageGuildTargetClear/${messageId}/${selectedSource || ""}`)
+            .setLabel("Clear")
+            .setStyle(4),
         ),
     );
   } else {
@@ -106,7 +113,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
       .addActionRowComponents(
         ...targetLanguageChunks.map((chunk, index) =>
           new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
-            new StringSelectMenuBuilder().setCustomId(`messageGuildTarget/${messageId}/${selectedSource}?${index}`).setOptions(
+            new StringSelectMenuBuilder().setCustomId(`messageGuildTarget/${messageId}/${selectedSource || ""}?${index}`).setOptions(
               ...chunk.map((lang) => ({
                 label: AllLanguages[lang]!,
                 value: lang,
@@ -126,7 +133,10 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
           t.setContent(`### Selected source language: **${AllLanguages[selectedSource as SourceLanguageCode]}**`),
         )
         .setButtonAccessory(
-          new ButtonBuilder().setCustomId(`messageGuildSourceClear/${messageId}/${selectedTarget}`).setLabel("Clear").setStyle(4),
+          new ButtonBuilder()
+            .setCustomId(`messageGuildSourceClear/${messageId}/${selectedTarget || ""}`)
+            .setLabel("Clear")
+            .setStyle(4),
         ),
     );
   } else {
@@ -135,7 +145,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
       .addActionRowComponents(
         ...sourceLanguageChunks.map((chunk, index) =>
           new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
-            new StringSelectMenuBuilder().setCustomId(`messageGuildSource/${messageId}/${selectedTarget}?${index}`).setOptions(
+            new StringSelectMenuBuilder().setCustomId(`messageGuildSource/${messageId}/${selectedTarget || ""}?${index}`).setOptions(
               ...chunk.map((lang) => ({
                 label: AllLanguages[lang]!,
                 value: lang,
