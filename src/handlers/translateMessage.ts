@@ -106,7 +106,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
           new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
             new StringSelectMenuBuilder().setCustomId(`messageGuildTarget/${messageId}/${selectedSource}?${index}`).setOptions(
               ...chunk.map((lang) => ({
-                label: AllLanguages[lang],
+                label: AllLanguages[lang]!,
                 value: lang,
                 default: !!(selectedTarget && selectedTarget === lang),
               })),
@@ -133,7 +133,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
           new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
             new StringSelectMenuBuilder().setCustomId(`messageGuildSource/${messageId}/${selectedTarget}?${index}`).setOptions(
               ...chunk.map((lang) => ({
-                label: AllLanguages[lang],
+                label: AllLanguages[lang]!,
                 value: lang,
                 default: !!(selectedSource && selectedSource === lang),
               })),

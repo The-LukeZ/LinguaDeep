@@ -14,7 +14,7 @@ bot.loadHandlers(Object.values(handlers));
 const app = new Hono<{ Bindings: Env }>();
 
 // Mount it
-app.post("/interactions", bot.handle);
+app.post("/interactions", bot.interactionsHandler);
 app.all("/", (c) => c.redirect(`https://discord.com/discovery/applications/${c.env.DISCORD_APPLICATION_ID}`, 302));
 
 export default app;

@@ -1,11 +1,12 @@
-import { DeepLClient, TextResult, type LanguageCode, type SourceLanguageCode, type TargetLanguageCode } from "deepl-node";
-import { APIInteraction, Locale, MessageFlags } from "discord-api-types/v10";
+import { TextResult, type LanguageCode, type SourceLanguageCode, type TargetLanguageCode } from "deepl-node";
+import { APIEmbed, Locale, MessageFlags } from "discord-api-types/v10";
 import { Cryption, makeCryptor } from "./cryption";
 import { BaseInteraction, Colors, ContainerBuilder } from "honocord";
 
 export type CommonLanguageCode = Exclude<SourceLanguageCode, "en" | "pt">;
 
-export const AllLanguages: Record<LanguageCode, string> = {
+export const AllLanguages: Partial<Record<LanguageCode, string>> = {
+  af: "Afrikaans",
   ar: "Arabic",
   bg: "Bulgarian",
   cs: "Czech",
@@ -45,9 +46,10 @@ export const AllLanguages: Record<LanguageCode, string> = {
   "pt-PT": "Portuguese (European)",
   "zh-HANS": "Chinese (Simplified)",
   "zh-HANT": "Chinese (Traditional)",
+  zu: "Zulu",
 } as const;
 
-const CommonLanguages: Record<CommonLanguageCode, string> = {
+const CommonLanguages: Partial<Record<CommonLanguageCode, string>> = {
   ar: "Arabic",
   bg: "Bulgarian",
   cs: "Czech",
@@ -236,7 +238,7 @@ export class Autocomplete {
   }
 }
 
-export function buildTranslatedMessage(deeplResponse: TextResult, targetLang: TargetLanguageCode) {
+export function buildTranslatedMessage(deeplResponse: TextResult, targetLang: TargetLanguageCode): { embeds: APIEmbed[] } {
   return {
     embeds: [
       {
@@ -244,6 +246,13 @@ export function buildTranslatedMessage(deeplResponse: TextResult, targetLang: Ta
           name: `🌐 From ${AllLanguages[deeplResponse.detectedSourceLang]} to ${AllLanguages[targetLang]}`,
         },
         description: deeplResponse.text,
+        fields: [
+          {
+            name: "Powered by [DeepL](https://www.deepl.com)",
+            value:
+              "_Not 100% of languages supported by DeepL are available in this bot. If you want to see your language supported, [please let me know](https://discord.gg/x8sC8MpeYX)!_",
+          },
+        ],
         footer: {
           text: `Billed: ${deeplResponse.billedCharacters} characters`,
         },
