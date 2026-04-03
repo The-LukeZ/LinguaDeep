@@ -96,7 +96,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
         .addTextDisplayComponents((t) =>
           t.setContent(`### Selected target language: **${AllLanguages[selectedTarget as TargetLanguageCode]}**`),
         )
-        .setButtonAccessory(new ButtonBuilder().setLabel("Clear").setCustomId(`messageGuildTargetClear/${messageId}/${selectedSource}`)),
+        .setButtonAccessory(new ButtonBuilder().setCustomId(`messageGuildTargetClear/${messageId}/${selectedSource}`).setLabel("Clear")),
     );
   } else {
     container
@@ -123,7 +123,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
         .addTextDisplayComponents((t) =>
           t.setContent(`### Selected source language: **${AllLanguages[selectedSource as SourceLanguageCode]}**`),
         )
-        .setButtonAccessory(new ButtonBuilder().setCustomId(`messageGuildSourceClear/${messageId}/${selectedTarget}`)),
+        .setButtonAccessory(new ButtonBuilder().setCustomId(`messageGuildSourceClear/${messageId}/${selectedTarget}`).setLabel("Clear")),
     );
   } else {
     container
@@ -150,7 +150,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
         .setLabel(selectedTarget ? "Translate" : "Select a target language")
         .setStyle(3)
         .setDisabled(!selectedTarget)
-        .setCustomId(`translate_message_confirm/${messageId}/${selectedTarget || ""}/${selectedSource || ""}`),
+        .setCustomId(`translateMessageConfirm/${messageId}/${selectedTarget || ""}/${selectedSource || ""}`),
     ),
   );
 
@@ -161,7 +161,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
 }
 
 export const componentTrsMessageConfirm = new ComponentHandler<MyContext, ComponentType.Button>(
-  "translate_message_confirm",
+  "translateMessageConfirm",
   ComponentType.Button,
 ).addHandler(async (ctx) => {
   const channelId = ctx.channel!.id;
