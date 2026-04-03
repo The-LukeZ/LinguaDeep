@@ -25,11 +25,6 @@ import {
   V2Flag,
 } from "../utils.js";
 
-export const trsMsgCommand = new ContextCommandHandler<MyContext, ContextCommandType.Message>(ContextCommandType.Message)
-  .setName("Translate (Choose Language)")
-  .setIntegrationTypes(ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall);
-
-// Chunks of 25 languages for select menu options
 const targetLanguageChunks = TargetLanguages.sort().reduce<TargetLanguageCode[][]>((chunks, lang) => {
   if (chunks.length === 0 || chunks[chunks.length - 1].length === 25) {
     chunks.push([]);
@@ -170,7 +165,8 @@ export const componentTrsMessageConfirm = new ComponentHandler<MyContext, Compon
   ComponentType.Button,
 ).addHandler(async (ctx) => {
   const channelId = ctx.channel!.id;
-  const [messageId, target, source] = ctx.customId.split("/");
+  const { compPath } = parseCustomId(ctx.customId) as { compPath: string[] };
+  const [_, messageId, target, source] = compPath;
 
   if (!target) {
     return ctx.reply(errorResponse("Please select a target language before confirming."));
@@ -180,7 +176,7 @@ export const componentTrsMessageConfirm = new ComponentHandler<MyContext, Compon
 
   // Retrieve the message text from the DataCache durable object (cached when the command was run)
   const key = `${channelId}:${messageId}`;
-  const id: DurableObjectId = ctx.context.env.DATA_CACHE.idFromName(key);
+  const id = ctx.context.env.DATA_CACHE.idFromName(key);
   const stub = ctx.context.env.DATA_CACHE.get(id);
   const cachedText = await stub.getData(key);
 
@@ -228,11 +224,13 @@ export const trsMessageCommand = new ContextCommandHandler<MyContext, ContextCom
     const messageId = ctx.targetMessage.id;
     const text = (ctx.targetMessage.content || "").trim();
     if (!text) {
-      return ctx.editReply(errorResponse("The selected message has no content to translate."));
+      return ctx.reply(errorResponse("The selected message has no content to translate."));
     }
 
+    await ctx.deferReply(true);
+
     const key = `${channelId}:${messageId}`;
-    const id: DurableObjectId = ctx.context.env.DATA_CACHE.idFromName(key);
+    const id = ctx.context.env.DATA_CACHE.idFromName(key);
     const stub = ctx.context.env.DATA_CACHE.get(id);
     await stub.setData(key, text);
 
