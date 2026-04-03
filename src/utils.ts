@@ -1,7 +1,7 @@
 import { TextResult, type LanguageCode, type SourceLanguageCode, type TargetLanguageCode } from "deepl-node";
-import { APIEmbed, Locale, MessageFlags } from "discord-api-types/v10";
+import { Locale, MessageFlags } from "discord-api-types/v10";
 import { Cryption, makeCryptor } from "./cryption";
-import { BaseInteraction, Colors, ContainerBuilder } from "honocord";
+import { BaseInteraction, Colors, ContainerBuilder, InteractionResponseCallbackData } from "honocord";
 
 export type CommonLanguageCode = Exclude<SourceLanguageCode, "en" | "pt">;
 
@@ -238,21 +238,15 @@ export class Autocomplete {
   }
 }
 
-export function buildTranslatedMessage(deeplResponse: TextResult, targetLang: TargetLanguageCode): { embeds: APIEmbed[] } {
+export function buildTranslatedMessage(deeplResponse: TextResult, targetLang: TargetLanguageCode): InteractionResponseCallbackData {
   return {
+    content: "-# _Not 100% of languages supported by DeepL are available in this bot. If you want to see your language supported, [please let me know](https://discord.gg/x8sC8MpeYX)!_",
     embeds: [
       {
         author: {
           name: `🌐 From ${AllLanguages[deeplResponse.detectedSourceLang]} to ${AllLanguages[targetLang]}`,
         },
-        description: deeplResponse.text,
-        fields: [
-          {
-            name: "Powered by [DeepL](https://www.deepl.com)",
-            value:
-              "_Not 100% of languages supported by DeepL are available in this bot. If you want to see your language supported, [please let me know](https://discord.gg/x8sC8MpeYX)!_",
-          },
-        ],
+        description: deeplResponse.text + "\n\n-# Powered by [DeepL](https://www.deepl.com)",
         footer: {
           text: `Billed: ${deeplResponse.billedCharacters} characters`,
         },
