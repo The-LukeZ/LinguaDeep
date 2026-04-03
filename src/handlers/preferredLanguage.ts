@@ -27,7 +27,7 @@ export const preferredLanguageCommand = new SlashCommandHandler<MyContext>()
     const option = ctx.options.getFocused();
     if (!option || option.name !== "language") return ackRequest();
     return ctx.respond(
-      new Autocomplete(option.value).choices(...TargetLanguages.map((code) => ({ name: AllLanguages[code], value: code }))).toJSON(),
+      new Autocomplete(option.value).choices(...TargetLanguages.map((code) => ({ name: AllLanguages[code]!, value: code }))).toJSON(),
     );
   })
   .addHandler(async (ctx) => {

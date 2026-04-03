@@ -39,11 +39,11 @@ export const trsCommand = new SlashCommandHandler<MyContext>()
 
     if (option.name === "target_lang") {
       return ctx.respond(
-        new Autocomplete(option.value).choices(...TargetLanguages.map((code) => ({ name: AllLanguages[code], value: code }))).toJSON(),
+        new Autocomplete(option.value).choices(...TargetLanguages.map((code) => ({ name: AllLanguages[code]!, value: code }))).toJSON(),
       );
     }
     return ctx.respond(
-      new Autocomplete(option.value).choices(...SourceLanguages.map((code) => ({ name: AllLanguages[code], value: code }))).toJSON(),
+      new Autocomplete(option.value).choices(...SourceLanguages.map((code) => ({ name: AllLanguages[code]!, value: code }))).toJSON(),
     );
   })
   .addHandler(async (ctx) => {
