@@ -14,21 +14,21 @@
     "migrate": "wrangler d1 migrations apply prod_linguadeep --remote"
   },
   "devDependencies": {
-    "@types/node": "^25.0.3",
-    "prettier": "^3.7.4",
+    "@types/node": "^25.5.2",
+    "prettier": "^3.8.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "wrangler": "^4.54.0"
+    "wrangler": "^4.80.0"
   },
   "dependencies": {
-    "@discordjs/builders": "^1.13.1",
+    "@discordjs/builders": "^1.14.1",
     "@discordjs/core": "^2.4.0",
     "@discordjs/formatters": "^0.6.2",
-    "@discordjs/rest": "^2.6.0",
-    "deepl-node": "^1.24.0",
-    "discord-api-types": "^0.38.37",
-    "hono": "^4.11.7",
-    "honocord": "^1.4.6"
+    "@discordjs/rest": "^2.6.1",
+    "deepl-node": "^1.25.0",
+    "discord-api-types": "^0.38.44",
+    "hono": "^4.12.10",
+    "honocord": "^2.0.1"
   },
   "packageManager": "pnpm@10.28.2",
   "engines": {
