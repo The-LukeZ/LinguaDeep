@@ -1,5 +1,19 @@
+import { codeBlock } from "@discordjs/formatters";
 import { SourceLanguageCode, TargetLanguageCode } from "deepl-node";
 import { ApplicationIntegrationType } from "discord-api-types/v10";
+import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ComponentHandler,
+  ComponentType,
+  ContainerBuilder,
+  ContextCommandHandler,
+  ContextCommandType,
+  parseCustomId,
+  StringSelectMenuBuilder,
+} from "honocord";
+import { Translator } from "../translator.js";
+import { MyContext } from "../types.js";
 import {
   AllLanguages,
   buildTranslatedMessage,
@@ -10,20 +24,6 @@ import {
   TargetLanguages,
   V2Flag,
 } from "../utils.js";
-import {
-  ComponentHandler,
-  ContextCommandHandler,
-  ContextCommandType,
-  ComponentType,
-  ContainerBuilder,
-  ButtonBuilder,
-  parseCustomId,
-  StringSelectMenuBuilder,
-  ActionRowBuilder,
-} from "honocord";
-import { MyContext } from "../types.js";
-import { Translator } from "../translator.js";
-import { codeBlock } from "@discordjs/formatters";
 
 export const trsMsgCommand = new ContextCommandHandler<MyContext, ContextCommandType.Message>(ContextCommandType.Message)
   .setName("Translate (Choose Language)")
@@ -101,7 +101,7 @@ function createLanguageSelectMessage(messageId: string, selectedSource?: string,
         .addTextDisplayComponents((t) =>
           t.setContent(`### Selected target language: **${AllLanguages[selectedTarget as TargetLanguageCode]}**`),
         )
-        .setButtonAccessory(new ButtonBuilder().setCustomId(`asd?${messageId}/${selectedSource}`)),
+        .setButtonAccessory(new ButtonBuilder().setLabel("Clear").setCustomId(`messageGuildTargetClear/${messageId}/${selectedSource}`)),
     );
   } else {
     container
